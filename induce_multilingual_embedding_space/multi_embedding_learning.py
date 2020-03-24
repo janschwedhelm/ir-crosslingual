@@ -8,6 +8,15 @@ LEARNING_METHODS = {'procrustes'}  # todo: implement further methods
 
 
 def projection_learning(s_path: str, t_path: str, trans_dict, method: str = 'procrustes', n_max: int = 50000):
+    """
+    Learns projection matrix W that maps source language monolingual embedding into multilingual word embedding space.
+    :param s_path: path of fastText source monolingual embedding text file
+    :param t_path: path of fastText target monolingual embedding text file
+    :param trans_dict: path of external expert translation dictionary
+    :param method: method to solve the learning problem
+    :param n_max: maximum number of most frequent words that are loaded in monolingual word embeddings
+    :return: projection matrix W
+    """
     if method not in LEARNING_METHODS:
         raise ValueError("Method must be one of {}.".format(LEARNING_METHODS))
 
