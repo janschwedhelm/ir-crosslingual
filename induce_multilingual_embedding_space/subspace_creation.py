@@ -88,4 +88,3 @@ def align_monolingual_subspaces(s_embedding: np.ndarray, t_embedding: np.ndarray
     t_subspace = t_embedding[[tuples[1] for tuples in seed_dictionary]]
     print("Resulting subspace dimension: {}".format(s_subspace.shape))
     return s_subspace, t_subspace
-

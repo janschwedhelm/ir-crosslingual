@@ -30,6 +30,3 @@ def projection_learning(s_path: str, t_path: str, trans_dict, method: str = 'pro
         U, s, Vt = svd(np.transpose(X_S) @ X_T)
         W = U @ Vt
         return W
-
-
-
