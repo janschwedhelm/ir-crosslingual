@@ -1,7 +1,7 @@
 # 1. Inducing multilingual word embedding
 Questions
-1 Are we allowed to use pre-trained monolingual word embeddings from FastText or do we have to train them ourselves?
-1 The term supervised/unsupervised is related to the way of inducing the multilingual embedding space, isn't it?
+1. Are we allowed to use pre-trained monolingual word embeddings from FastText or do we have to train them ourselves?
+2. The term supervised/unsupervised is related to the way of inducing the multilingual embedding space, isn't it?
     Supervised = we feed an external expert dictionary (like Europarl) into our model to induce the multilingual embedding
     Unsupervised = we don't feed an external expert dictionary into our model, but learn in instrinsicly in training process
 
@@ -21,7 +21,7 @@ Framework
 
 # 3. Unsupervised classification task
 Questions
-3 Same task as supervised task (compute similarities between mapped vectors -> get a ranking of best translations (with respect to model)) except for not using an external expert dictionary for training?
+1. Same task as supervised task (compute similarities between mapped vectors -> get a ranking of best translations (with respect to model)) except for not using an external expert dictionary for training?
            
 
 
