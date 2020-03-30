@@ -2,8 +2,9 @@
 Questions
 1. Are we allowed to use pre-trained monolingual word embeddings from FastText or do we have to train them ourselves?
 2. The term supervised/unsupervised is related to the way of inducing the multilingual embedding space, isn't it?
+    
     Supervised = we feed an external expert dictionary (like Europarl) into our model to induce the multilingual embedding
-    Unsupervised = we don't feed an external expert dictionary into our model, but learn in instrinsicly in training process
+    Unsupervised = we don't feed an external expert dictionary into our model, but learn in intrinsicly in training process
 
 Framework
 1. Load fastText monolingual embeddings
