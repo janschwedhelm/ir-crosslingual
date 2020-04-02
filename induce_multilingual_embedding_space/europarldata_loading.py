@@ -7,6 +7,3 @@ wget.download(file_url, 'de-en.tmx.gz')
 import shutil
 with gzip.open('de-en.tmx.gz', 'rb') as f_in, open('de-en.txt', 'wb') as f_out:
   shutil.copyfileobj(f_in, f_out)
-
-
-
