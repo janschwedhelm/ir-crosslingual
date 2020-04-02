@@ -43,9 +43,7 @@ def tmx_dataframe(path):
             srclang, srcsentence = process_tuv(tu.getElementsByTagName('tuv')[0])
             targetlang, targetsentence = process_tuv(tu.getElementsByTagName('tuv')[1])
             item = {
-                'source_language': srclang,
                 'source_sentence': srcsentence,
-                'target_language': targetlang,
                 'target_sentence': targetsentence
             }
             items.append(item)
