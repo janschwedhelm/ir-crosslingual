@@ -7,7 +7,7 @@ def load_monolingual_embedding(path: str, n_max: int = 50000):
     Load fastText Wiki text model in Python.
     :param path: path of fastText monolingual embedding text file
     :param n_max: maximum number of most frequent words that are loaded
-    :return: embedding vectors of respective words, mappings of indices and words (i.e. Python dictionaries)
+    :return: 300-dim embedding vectors of respective words, mappings of indices and words (i.e. Python dictionaries)
     """
     vectors = []
     word2id = {}
