@@ -54,7 +54,7 @@ def extract_seed_dictionary(expert_dict, s_word2id: dict, t_word2id: dict):
                     misfit += 1
                     misfit_s += int(s_word not in s_word2id)
                     misfit_t += int(t_word not in t_word2id)
-            print('Found {} valid translation pairs.\n'
+            print('Found {} valid translation pairs in expert dictionary.\n'
                   '{} other pairs contained at least one unknown word ({} in source language, {} in target language).'
                   .format(len(word_pairs), misfit, misfit_s, misfit_t))
             return index_pairs, word_pairs
