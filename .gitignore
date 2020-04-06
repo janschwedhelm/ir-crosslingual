@@ -1,0 +1,14 @@
+# Data files
+*.txt
+*.zip
+*.vec
+*.xml
+
+# Test files
+*_test.ipynb
+*-checkpoint.ipynb
+
+.idea
+clir.egg-info
+.ipynb_checkpoints
+*.iml
