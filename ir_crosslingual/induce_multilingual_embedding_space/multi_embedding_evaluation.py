@@ -1,6 +1,5 @@
-from mono_embedding_loading import load_monolingual_embedding
-from subspace_creation \
-    import create_translation_dictionary, extract_seed_dictionary, align_monolingual_subspaces
+from ir_crosslingual.induce_multilingual_embedding_space import mono_embedding_loading as mono
+from ir_crosslingual.induce_multilingual_embedding_space import subspace_creation as sub
 import numpy as np
 from sklearn.metrics.pairwise import cosine_similarity
 import os
@@ -31,15 +30,15 @@ def evaluate_multilingual_embedding(s_emb, t_emb, proj_matrix: np.ndarray, test_
         raise ValueError("Similarity measure must be one of {}.".format(SIMILARITY_MEASURES))
 
     if isinstance(s_emb, str) and os.path.isfile(s_emb):
-        s_emb, s_id2word, s_word2id = load_monolingual_embedding(s_emb, s_nmax)
-        t_emb, t_id2word, t_word2id = load_monolingual_embedding(t_emb, t_nmax)
-        true_translations_indices, true_translations_words = extract_seed_dictionary(test_expert_dict,
+        s_emb, s_id2word, s_word2id = mono.load_monolingual_embedding(s_emb, s_nmax)
+        t_emb, t_id2word, t_word2id = mono.load_monolingual_embedding(t_emb, t_nmax)
+        true_translations_indices, true_translations_words = sub.extract_seed_dictionary(test_expert_dict,
                                                                                      s_word2id=s_word2id,
                                                                                      t_word2id=t_word2id)
     elif isinstance(s_emb, np.ndarray) and s_word2id is not None:
         s_id2word = {v: k for k, v in s_word2id.items()}
         t_id2word = {v: k for k, v in t_word2id.items()}
-        true_translations_indices, true_translations_words = extract_seed_dictionary(test_expert_dict,
+        true_translations_indices, true_translations_words = sub.extract_seed_dictionary(test_expert_dict,
                                                                                      s_word2id=s_word2id,
                                                                                      t_word2id=t_word2id)
     else:

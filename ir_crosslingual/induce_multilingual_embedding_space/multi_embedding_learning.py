@@ -1,6 +1,5 @@
-from mono_embedding_loading import load_monolingual_embedding
-from subspace_creation \
-    import create_translation_dictionary, extract_seed_dictionary, align_monolingual_subspaces
+from ir_crosslingual.induce_multilingual_embedding_space import mono_embedding_loading as mono
+from ir_crosslingual.induce_multilingual_embedding_space import subspace_creation as sub
 import numpy as np
 from numpy.linalg import svd
 import os
@@ -28,13 +27,13 @@ def learn_projection_matrix(s_vecs, t_vecs, train_expert_dict, s_word2id: dict =
         raise TypeError("word2id dictionaries have to be specified if embeddings are given as numpy arrays.")
 
     if isinstance(s_vecs, str) and os.path.isfile(s_vecs):
-        l1_emb, l1_id2word, l1_word2id = load_monolingual_embedding(s_vecs, n_max)
-        l2_emb, l2_id2word, l2_word2id = load_monolingual_embedding(t_vecs, n_max)
-        d_index, d_word = extract_seed_dictionary(train_expert_dict, l1_word2id, l2_word2id)
-        s_emb, t_emb = align_monolingual_subspaces(l1_emb, l2_emb, d_index)
+        l1_emb, l1_id2word, l1_word2id = mono.load_monolingual_embedding(s_vecs, n_max)
+        l2_emb, l2_id2word, l2_word2id = mono.load_monolingual_embedding(t_vecs, n_max)
+        d_index, d_word = sub.extract_seed_dictionary(train_expert_dict, l1_word2id, l2_word2id)
+        s_emb, t_emb = sub.align_monolingual_subspaces(l1_emb, l2_emb, d_index)
     else:
-        d_index, d_word = extract_seed_dictionary(train_expert_dict, s_word2id, t_word2id)
-        s_emb, t_emb = align_monolingual_subspaces(s_vecs, t_vecs, d_index)
+        d_index, d_word = sub.extract_seed_dictionary(train_expert_dict, s_word2id, t_word2id)
+        s_emb, t_emb = sub.align_monolingual_subspaces(s_vecs, t_vecs, d_index)
 
     if method == 'procrustes':
         U, s, Vt = svd(np.transpose(s_emb) @ t_emb)
