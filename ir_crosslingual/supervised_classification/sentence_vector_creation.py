@@ -29,18 +29,21 @@ def load_sentences(path: str, n_max: int = 500000):
     return [" ".join(sen.lower().split()) for sen in sentences]
 
 
-def preprocess_sentences(sentences: list, language: str, remove_stopwords: bool = True,
-                         remove_punctuation: bool = False):
+def preprocess_sentences(sentences: list, language: str, to_lower: bool = True,
+                         remove_stopwords: bool = True, remove_punctuation: bool = False):
     """
     Preprocesses sentences according to specified steps.
     :param sentences: list of sentence strings
     :param language: language of sentence strings
+    :param to_lower: if True, sentences are converted to lower case
     :param remove_stopwords: if True, stopwords are removed
     :param remove_punctuation: if True, punctuation is removed
     :return: list of tokenized sentences, further processed according to specified preprocessing steps
     """
     if language not in LANGUAGES:
         raise ValueError("Language must be one of {}.".format(LANGUAGES))
+    if to_lower:
+        sentences = [sen.strip().lower() for sen in sentences]
     if remove_punctuation:
         sentences = [sen.translate(str.maketrans('', '', string.punctuation)) for sen in sentences]
 
