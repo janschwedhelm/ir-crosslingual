@@ -67,7 +67,8 @@ def tf_idf(sentence_tokens: list):
 
 
 def transform_into_sentence_vectors(sentences: list, language: str, word_emb: np.ndarray, word2id: dict,
-                                    agg_method: str = 'average', ignore_stopwords=True, ignore_punctuation=False):
+                                    agg_method: str = 'average', ignore_stopwords=True, ignore_punctuation=False,
+                                    preprocessed=False, prev_invalid_sentences=set()):
     """
     Transforms sentences into sentence embedding vectors.
     :param sentences: list of sentences to be transformed
@@ -77,6 +78,8 @@ def transform_into_sentence_vectors(sentences: list, language: str, word_emb: np
     :param agg_method: aggregation method
     :param ignore_stopwords: if True, stopwords are ignored when calculating sentence embedding vectors
     :param ignore_punctuation: if True, punctuation is ignored when calculating sentence embedding vectors
+    :param preprocessed: if True, sentences have already been preprocessed before and won't be preprocessed again within this method
+    :param prev_invalid_sentences: Set of sentence indices that should be declared invalid (e.g., as invalid in other language)
     :return: 300-dim sentence embeddings vectors
     """
     if agg_method not in AGGREGATION_METHODS:
@@ -84,10 +87,13 @@ def transform_into_sentence_vectors(sentences: list, language: str, word_emb: np
 
     if not isinstance(sentences, list):
         sentences = [sentences]
-    sentences_preprocessed = preprocess_sentences(sentences, language, ignore_stopwords, ignore_punctuation)
 
-    words_found = [[word2id[word] for word in sen if word in word2id.keys()] for sen in sentences_preprocessed]
+    if not preprocessed:
+        sentences = preprocess_sentences(sentences, language, ignore_stopwords, ignore_punctuation)
+
+    words_found = [[word2id[word] for word in sen if word in word2id.keys()] for sen in sentences]
     invalid_sentences = {i for i in range(len(sentences)) if len(words_found[i]) == 0}
+    invalid_sentences.update(prev_invalid_sentences)
 
     if invalid_sentences:
         for i in invalid_sentences:
@@ -102,9 +108,9 @@ def transform_into_sentence_vectors(sentences: list, language: str, word_emb: np
         if len(sentences) == 1:
             raise ZeroDivisionError("TF-IDF scores cannot be computed since number of sentences equals 1. "
                                     "Use 'average' instead.")
-        tf_idf_scores = tf_idf(sentences_preprocessed)
+        tf_idf_scores = tf_idf(sentences)
         sen_emb = []
-        for i, tokens in enumerate(sentences_preprocessed):
+        for i, tokens in enumerate(sentences):
             if i not in invalid_sentences:
                 vec = np.zeros((1,300))
                 for token in tokens:
@@ -115,4 +121,7 @@ def transform_into_sentence_vectors(sentences: list, language: str, word_emb: np
     id2sentence = {i: sen for i, sen in enumerate([sentences[j] for j in range(len(sentences))
                                                    if j not in invalid_sentences])}
 
-    return np.vstack(sen_emb), id2sentence
+    for idx in list(invalid_sentences):
+        del words_found[idx]
+
+    return np.vstack(sen_emb), id2sentence, words_found, invalid_sentences
