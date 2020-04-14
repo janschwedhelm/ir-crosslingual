@@ -3,10 +3,13 @@
 *.zip
 *.vec
 *.xml
+*.gz
+*.tmx
 
 # Test files
 *_test.ipynb
 *-checkpoint.ipynb
+*_test.py
 
 .idea
 clir.egg-info
