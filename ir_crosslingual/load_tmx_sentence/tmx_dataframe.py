@@ -10,7 +10,8 @@ def process_tuv(tuv):
     txt = seg.childNodes[0].data
     return lang, txt
 
-def tmx_dataframe(path):
+
+def tmx_dataframe(path):  # todo: try to refactor since in needs a lot of time
 
     """takes in a path to TMX translation file and outputs the metadata and a pandas dataframe.
     Args:
