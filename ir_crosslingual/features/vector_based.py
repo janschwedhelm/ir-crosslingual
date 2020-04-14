@@ -75,7 +75,10 @@ def ngas(s_sen: list, t_sen: list):
     similarities_sum = 0.0
     for word in s_sen:
         similarities_sum += most_similar(word, t_sen)[1]
-    return similarities_sum / len(s_sen)
+    try:
+        return similarities_sum / len(s_sen)
+    except ZeroDivisionError:
+        return -1
 
 
 def gas(s_sen: list, t_sen: list):
