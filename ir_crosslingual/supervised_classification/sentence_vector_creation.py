@@ -68,7 +68,7 @@ def tf_idf(sentence_tokens: list):
 
 def transform_into_sentence_vectors(sentences: list, language: str, word_emb: np.ndarray, word2id: dict,
                                     agg_method: str = 'average', ignore_stopwords=True, ignore_punctuation=False,
-                                    preprocessed=False, prev_invalid_sentences=set()):
+                                    preprocessed=False):
     """
     Transforms sentences into sentence embedding vectors.
     :param sentences: list of sentences to be transformed
@@ -79,7 +79,6 @@ def transform_into_sentence_vectors(sentences: list, language: str, word_emb: np
     :param ignore_stopwords: if True, stopwords are ignored when calculating sentence embedding vectors
     :param ignore_punctuation: if True, punctuation is ignored when calculating sentence embedding vectors
     :param preprocessed: if True, sentences have already been preprocessed before and won't be preprocessed again within this method
-    :param prev_invalid_sentences: Set of sentence indices that should be declared invalid (e.g., as invalid in other language)
     :return: 300-dim sentence embeddings vectors
     """
     if agg_method not in AGGREGATION_METHODS:
@@ -93,7 +92,6 @@ def transform_into_sentence_vectors(sentences: list, language: str, word_emb: np
 
     words_found = [[word2id[word] for word in sen if word in word2id.keys()] for sen in sentences]
     invalid_sentences = {i for i in range(len(sentences)) if len(words_found[i]) == 0}
-    invalid_sentences.update(prev_invalid_sentences)
 
     if invalid_sentences:
         for i in invalid_sentences:
@@ -101,8 +99,14 @@ def transform_into_sentence_vectors(sentences: list, language: str, word_emb: np
                   "could not calculate the respective embedding vector.".format(sentences[i]))
 
     if agg_method == 'average':
-        sen_emb = [sum(word_emb[words_found[i]]) / len(words_found[i])
-                   for i in range(len(sentences)) if i not in invalid_sentences]
+        # sen_emb = [sum(word_emb[words_found[i]]) / len(words_found[i])
+                   # for i in range(len(sentences)) if i not in invalid_sentences]
+        sen_emb = []
+        for i in range(len(sentences)):
+            if i not in invalid_sentences:
+                sen_emb.append(sum(word_emb[words_found[i]])/len(words_found[i]))
+            else:
+                sen_emb.append(np.zeros(300))
 
     if agg_method == 'tf_idf':
         if len(sentences) == 1:
@@ -117,6 +121,8 @@ def transform_into_sentence_vectors(sentences: list, language: str, word_emb: np
                     if token in word2id.keys():
                         vec += tf_idf_scores[i][token] * word_emb[word2id[token]]
                 sen_emb.append(vec / sum([v for k, v in tf_idf_scores[i].items() if k in word2id.keys()]))
+            else:
+                sen_emb.append(np.zeros(300))
 
     id2sentence = {i: sen for i, sen in enumerate([sentences[j] for j in range(len(sentences))
                                                    if j not in invalid_sentences])}
