@@ -5,6 +5,11 @@
 *.xml
 *.gz
 *.tmx
+*.csv
+*.json
+*.de
+*.en
+*.fr
 
 # Test files
 *_test.ipynb
