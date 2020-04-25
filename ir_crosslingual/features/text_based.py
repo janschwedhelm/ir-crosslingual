@@ -11,29 +11,23 @@ POS_TAGS = {'noun': 'NN NNS NNP NNPS'.split(),
             }
 
 
-def equal_occurrence_punctuation(s_sen: list, t_sen: list, punctuation: str):
+# Preparation of features
+def occ_punctuation(sen: list, punctuation: str):
     """
-    Compares the occurrence of a given punctuation mark in the source and target sentence
-    :param s_sen: Source sentence given as a list of words
-    :param t_sen: Target sentence given as a list of words
-    :param punctuation: Punctuation mark after which the comparison shall be performed
-    :return: Returns 2 if both sentences contain the given punctuation mark,
-                returns 1 if only on the sentences contains the given punctuation mark,
-                returns 0 if none of the sentences contains the given punctuation mark
+    Checks whether a given punctuation mark occurs in a given sentence
+    :param sen: List of sentences in which to search for the given punctuation marks
+    :param punctuation: Punctuation mark to search for in sen
+    :return: True, if the sentence contains the punctuation mark.
+    False, if it doesn't
     """
-    try:
-        return (punctuation in s_sen) + (punctuation in t_sen)
-        # return 1 if (punctuation in s_sen) == (punctuation in t_sen) else 0
-    except TypeError:
-        print('Parameters need to be in string format')
-        return -1
+    return punctuation in sen
 
 
 def count_tokens(sentence: list, punctuation=True):
     """
     Counts the absolute number of to words or punctuation marks, respectively.
-    :param sentence: Sentence in which to search for words or punctuation marks
-    :param punctuation: If True, count number of punctuation marks. Else, count number of words
+    :param sentence: List of sentences in which to search for words or punctuation marks
+    :param token: If True, count number of punctuation marks. Else, count number of words
     :return: Absolute number of words or punctuation marks, respectively
     """
     try:
@@ -44,46 +38,87 @@ def count_tokens(sentence: list, punctuation=True):
         return -1
 
 
-def difference_count_tokens(s_sen: list, t_sen: list, punctuation=True):
-
+def count_nltk_tags(sen: list, word_group: str = 'noun'):
     """
-    Compute the difference in the absolute number of words or punctuation marks, respectively,
-    between the source and the target sentence
-    :param s_sen: Source sentence given as a list of words
-    :param t_sen: Target sentence given as a list of words
-    :param punctuation: If True, compute the difference in the absolute number of punctuation marks.
-    Else, compute the difference in the absolute number of words
-    :return: Absolute difference in the number of words or punctuation marks, respectively,
-    between the source and the target sentence
+    Counts the absolute number of a given word group in a list of sentences
+    :param sen: List of sentences in which to count the occurrence of the given word group
+    :param word_group: Word group to search for in sen
+    :return: Absolute number of the occurrence of the word group
     """
-    return abs(count_tokens(s_sen, punctuation) - count_tokens(t_sen, punctuation))
-
-
-def difference_count_nltk_tags(s_sen: list, t_sen: list, word_group: str = 'noun'):
-    """
-    Compute the difference in the absolute number of occurrences of a given group of pos tags
-    between the source and the target sentence
-    :param s_sen: Source sentence given as a list of words
-    :param t_sen: Target sentence given as a list of words
-    :param word_group: Word group after which the comparison shall be performed
-    :return: The absolute difference in the number of occurrences of the given word group
-    between the source and the target sentence
-    """
+    # TODO: Can be made more efficient by loading POS TAGS only once
+    #  and then returning the number of all requested word groups
     if word_group not in POS_TAGS:
         raise ValueError('POS-TAG must be one of {}.'.format(POS_TAGS))
     pos_tags = POS_TAGS[word_group]
-    _, s_tags = zip(*nltk.pos_tag(s_sen))
-    s_count = sum(value for key, value in dict(Counter(s_tags)).items() if key in pos_tags)
-    _, t_tags = zip(*nltk.pos_tag(t_sen))
-    t_count = sum(value for key, value in dict(Counter(t_tags)).items() if key in pos_tags)
-    return abs(s_count - t_count)
+    _, tags = zip(*nltk.pos_tag(sen))
+    return abs(sum(value for key, value in dict(Counter(tags)).items() if key in pos_tags))
 
+
+# Extraction of features
+def difference(src_sen, trg_sen):
+    """
+    Counts the difference of occurrences in a given source and target sentence
+    :param src_sen: Number of occurrences in the source sentence
+    :param trg_sen: Number of occurrences in the target sentence
+    :return: Absolute difference in the number of occurrences between the source and the target sentence
+    """
+    if isinstance(src_sen, int):
+        return [abs(src_sen - trg) for trg in trg_sen]
+    else:
+        return [abs(src_sen[i] - trg_sen[i]) for i in range(len(src_sen))]
+
+
+def equal_occurrence(src_sen, trg_sen):
+    """
+    Check the difference of binary occurrence of a punctuation mark between a source and a target sentence
+    :param src_sen: Binary occurrence of a punctuation mark in the source sentence
+    :param trg_sen: Binary occurrence of a punctuation mark in the target sentence
+    :return: 2, if both sentences contain the punctuation mark.
+    1, if only one of the sentences contain the punctuation mark.
+    0, if none of the sentences contain the punctuation mark.
+    """
+    if isinstance(src_sen, int):
+        return [int(src_sen + trg) for trg in trg_sen]
+    else:
+        return [int(src_sen[i] + trg_sen[i]) for i in range(len(src_sen))]
+
+
+# Dictionary of prepared text_based features that can be extracted on a single sentence
+# alongside the corresponding function that needs to be executed for te given feature
+PREPARED_FEATURES = {
+    'num_words': [count_tokens, 'preprocessed', {'punctuation': False}],
+    'num_punctuation': [count_tokens, 'preprocessed', {'punctuation': True}],
+    'occ_question_mark': [occ_punctuation, 'preprocessed', {'punctuation': '?'}],
+    'occ_exclamation_mark': [occ_punctuation, 'preprocessed', {'punctuation': '!'}]
+}
+
+for word_group in POS_TAGS:
+    PREPARED_FEATURES['num_{}'.format(word_group)] = [count_nltk_tags, 'preprocessed', {'word_group': word_group}]
+
+
+# Dictionary of all text_based features that can be extracted on two sentences to compare
+# alongside the corresponding function that needs to be executed for the given feature
+FEATURES = {
+    'diff_num_words': [difference, 'num_words'],
+    'diff_num_punctuation': [difference, 'num_punctuation'],
+    'diff_occ_question_mark': [equal_occurrence, 'occ_question_mark'],
+    'diff_occ_exclamation_mark': [equal_occurrence, 'occ_exclamation_mark'],
+    'diff_num_noun': [difference, 'num_noun'],
+    'diff_num_verb': [difference, 'num_verb'],
+    'diff_num_adverb': [difference, 'num_adverb'],
+    'diff_num_adjective': [difference, 'num_adjective'],
+    'diff_num_wh': [difference, 'num_wh'],
+    'diff_num_pronoun': [difference, 'num_pronoun']
+}
 
 if __name__ == '__main__':
     """
     Test section
     """
-    s = 'i would therefore once more ask you to ensure that we get a dutch channel as well .'.split()
-    t = 'deshalb möchte ich sie nochmals ersuchen , dafür sorge zu tragen , ' \
-        'daß auch ein niederländischer sender eingespeist wird .'.split()
-    print(equal_occurrence_punctuation(s, t, '?'))
+    # s = 'i would therefore once more ask you to ensure that we get a dutch channel as well .'.split()
+    # t = 'deshalb möchte ich sie nochmals ersuchen , dafür sorge zu tragen , ' \
+        # 'daß auch ein niederländischer sender eingespeist wird .'.split()
+    # print(equal_occurrence_punctuation(s, t, '?'))
+    # a = count_tokens('', True)
+    b = count_tokens('deshalb möchte ich sie nochmals ersuchen , dafür sorge zu tragen'.split(), punctuation=False)
+    print(b)
