@@ -28,6 +28,11 @@ class WordEmbeddings:
         WordEmbeddings.all_embeddings[language] = self
 
     def load_embeddings(self):
+        """
+        Load monolingual word embeddings for the given language and save them in self.embeddings.
+        Also store self.word2id and self.id2word dictionaries
+        :return:
+        """
         vectors = []
         path = strings.monolingual_embedding_paths[self.language]
         with io.open(path, 'r', encoding='utf-8', newline='\n', errors='ignore') as file:
@@ -43,11 +48,18 @@ class WordEmbeddings:
         self.id2word = {v: k for k, v in self.word2id.items()}
 
     def align_monolingual_embeddings(self, languages: str, source: bool):
+        """
+        Align monolingual embeddings of self.language where self.language is either the source language
+        if source == True and self.language is the target language if source == False.
+        Aligned embedding is then stored for self.language in self.aligned_subspace[other_language]
+        :param languages: Language pair to align the embedding space. Given in 'src-trg' format
+        :param source: If True, self.language is the source language.
+        If False, self.language is the target language
+        """
         seed_dict = WordEmbeddings.get_seed_ids(src_lang=languages[:2], trg_lang=languages[-2:])
         self.aligned_subspace[languages[-2:] if source else languages[:2]] = self.embeddings[[tuples[not source] for tuples in seed_dict]]
         print("Resulting subspace dimension: {}".format(self.aligned_subspace[languages[-2:] if source else languages[:2]].shape))
 
-    # TODO: Try to eliminate redundant code of the following getter methods
     @classmethod
     def get_embeddings(cls, language: str):
         try:
@@ -83,19 +95,20 @@ class WordEmbeddings:
             print('Seed IDs dictionary for language pair {} does not exist yet.'.format(languages))
             return -1
 
-    # TODO: Create setter methods for class/instance attributes
-
     @classmethod
     def set_seed_dictionary(cls, src_lang: str, trg_lang: str):
+        """
+        Set seed dictionary for a given source/target language pair.
+        Seed dictionary is then stored in WordEmbeddings.seed_words[language_pair]
+        and WordEmbeddings.seed_ids[language_pair], for language_pair in in 'src-trg' format
+        :param src_lang: Source language of the seed dictionary (short form, e.g. 'de')
+        :param trg_lang: Target language of the seed dictionary (short form, e.g. 'de')
+        """
         # TODO: Check that languages are in list
 
         source = cls.get_embeddings(src_lang)
         target = cls.get_embeddings(trg_lang)
         languages = '{}-{}'.format(src_lang, trg_lang)
-
-        '''if (source.embeddings is None) or (target.embeddings is None):
-            print('Monolingual word embeddings for source and target languages have to be loaded first.')
-            return -1'''
 
         expert_dict = strings.expert_dictionaries[languages]
         index_pairs = []
@@ -145,6 +158,19 @@ class WordEmbeddings:
 
     @classmethod
     def learn_projection_matrix(cls, src_lang: str, trg_lang: str, method: str = 'procrustes', extract_seed: bool = True):
+        """
+        Learn projection matrices for a language pair in both directions.
+        Projection matrices are then stored in WordEmbeddings.projection_matrices['src_lang-trg_lang']
+        and WordEmbeddings.projection_matrices['trg_lang-src_lang']
+        :param src_lang: Source language (short form, e.g. 'de')
+        :param trg_lang: Target language (short form, e.g. 'de')
+        :param method: Learning method
+        :param extract_seed: Boolean variable to indicate whether the seed dictionary has be set or has been set yet.
+        If True, set seed dictionary in this function.
+        If False, seed dictionary has already been set yet and is stored in WordEmbeddings.seed_words and
+        WordEmbeddings.seed_ids already
+        :return: Return projection matrices in both directions
+        """
         for s_lang, t_lang in zip([src_lang, trg_lang], [trg_lang, src_lang]):
             # TODO: Always check that languages are in list
             print('Learn projection matrix for {}-{}'.format(s_lang, t_lang))
