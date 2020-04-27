@@ -49,7 +49,7 @@ class Sentences:
         self.prepared_features = list()
         self.src_prepared_features = list()
         self.trg_prepared_features = list()
-        self.features = dict()
+        self.features_dict = dict()
 
         self.data = pd.DataFrame()
         self.train_data = pd.DataFrame()
@@ -57,11 +57,14 @@ class Sentences:
 
         # Sentences.all_language_pairs['{}-{}'.format(self.src_lang, self.trg_lang)] = self
 
+    def get_word_embeddings(self, source: bool = True):
+        return self.word_embeddings[not source] if source else self.word_embeddings[not source]
+
     def load_sentences(self, language: str):
         """
         Loads sentences from Europarl text file.
-        :param language: Language abbreviation for which to load Europarl sentences
-        :return: list of Europarl sentences, lower case and striped
+        :param language: Language abbreviation for which to load Europarl sentences (short form, e.g. 'de')
+        :return: list of Europarl sentences, striped
         """
         sentences = []
         try:
@@ -70,33 +73,35 @@ class Sentences:
             print('No Europarl data available for this language')
         with io.open('{}.{}'.format(path, language), 'r', encoding='utf-8', newline='\n', errors='ignore') as file:
             for index, line in enumerate(file):
-                if not line.strip().lower() == '':
-                    sentences.append(line.strip().lower())
+                if not line.strip() == '':
+                    sentences.append(line.strip())
                 if len(sentences) == self.n_max:
                     break
-        return [" ".join(sen.lower().split()) for sen in sentences]
+        return [" ".join(sen.split()) for sen in sentences]
 
     def preprocess_sentences(self):
         """
-        Preprocesses sentences according to specified steps.
-        :return: list of tokenized sentences, further processed according to specified preprocessing steps
+        Preprocesses sentences according to specified steps in self.load_data.
+        Tokenized sentences, further preproccessed according to specified preprocessing steps are then stored in
+        self.preprocessed_sentences[src_lang] and self.preprocessed_sentences[trg_lang]
         """
         for language in self.languages:
             if self.to_lower:
-                self.sentences[language] = [sen.strip().lower() for sen in self.sentences[language]]
+                self.sentences_preprocessed[language] = [sen.strip().lower() for sen in self.sentences[language]]
 
             if self.remove_punctuation:
-                self.sentences[language] = [sen.translate(str.maketrans('', '', string.punctuation))
-                                            for sen in self.sentences[language]]
+                self.sentences_preprocessed[language] = [sen.translate(str.maketrans('', '', string.punctuation))
+                                                         for sen in self.sentences_preprocessed[language]]
 
             self.sentences_preprocessed[language] = [re.findall(r"\w+|[^\w\s]", sen, re.UNICODE)
-                                                     for sen in self.sentences[language]]
+                                                     for sen in self.sentences_preprocessed[language]]
 
             if self.remove_stopwords:
                 stops = set(stopwords.words(strings.languages[language]))
                 self.sentences_preprocessed[language] = [[word for word in tokens if word not in stops]
                                                          for tokens in self.sentences_preprocessed[language]]
 
+    # TODO: Adapt this function to new sentence structure
     @staticmethod
     def tf_idf(sentence_tokens: list):
         """
@@ -104,7 +109,6 @@ class Sentences:
         :param sentence_tokens: list of tokenized supervised_classification
         :return: list of TF-IDF scores of term-sentence pairs, arranged as dictionaries
         """
-        # TODO: Adapt this function to new sentence structure
         df = dict(Counter(token for sen in sentence_tokens for token in set(sen)))
         idf = {k: math.log10(len(sentence_tokens) / v) for k, v in df.items()}
         tf = [{k: (1 + math.log10(v)) / (1 + math.log10(np.max(list(dic.values())))) for k, v in dic.items()} for dic in
@@ -121,7 +125,7 @@ class Sentences:
 
     def delete_invalid_sentences(self):
         """
-        Delete sentences of invalid indices
+        Delete sentences of invalid indices in all relevant variables
         """
         for idx in list(self.invalid_sentences):
             for language in self.languages:
@@ -133,7 +137,8 @@ class Sentences:
     def transform_into_sentence_vectors(self):
         """
         Transform preprocessed sentences into sentence vectors.
-        :return:
+        Transformed sentence embeddings are then stored in self.sentence_embeddings[src_lang] and
+        self.sentence_embeddings[trg_lang]
         """
         for language in self.languages:
             word_embeddings = self.word_embeddings[language].embeddings
@@ -144,7 +149,7 @@ class Sentences:
 
             self.invalid_sentences.update({i for i in range(len(sentences))
                                            if len(words_found[i]) == 0})
-            # print(self.invalid_sentences)
+
             if self.invalid_sentences:
                 for i in self.invalid_sentences:
                     print("Could not find a term of the sentence '{}' in word embedding vocabulary and thus, "
@@ -190,39 +195,56 @@ class Sentences:
             self.prepared_features = text_based.PREPARED_FEATURES
         else:
             self.prepared_features = dict((name,function) for name, function in text_based.PREPARED_FEATURES.items() if name in features)
-        for name, function in self.prepared_features.items():
-            print('Start preparation of feature {}'.format(name))
-            for e in ['src', 'trg']:
-                self.data['{}_{}'.format(e, name)] = self.data.apply(
-                    lambda row: function[0](row['{}_{}'.format(e, function[1])], **function[2]), axis=1)
+        if self.single_source:
+            for name, function in self.prepared_features.items():
+                print('Start preparation of feature {} in src sentence'.format(name))
+                self.data['src_{}'.format(name)] = function[0](self.data['src_{}'.format(function[1])][0], **function[2])
+            for name, function in self.prepared_features.items():
+                print('Start preparation of feature {} in trg sentences'.format(name))
+                self.data['trg_{}'.format(name)] = self.data.apply(
+                    lambda row: function[0](row['trg_{}'.format(function[1])], **function[2]), axis=1)
+        else:
+            for name, function in self.prepared_features.items():
+                print('Start preparation of feature {}'.format(name))
+                for e in ['src', 'trg']:
+                    self.data['{}_{}'.format(e, name)] = self.data.apply(
+                        lambda row: function[0](row['{}_{}'.format(e, function[1])], **function[2]), axis=1)
         return self.data
 
-    def load_data(self, src_sentences = None, trg_sentences = None, n_max: int = 500000, to_lower=True,
-                  remove_stopwords: bool = True, remove_punctuation: bool = False, agg_method: str = 'average',
-                  features=None):
+    def load_data(self, src_sentences=None, trg_sentences=None, single_source: bool = False, n_max: int = 5000,
+                  to_lower = True, remove_stopwords: bool = True, remove_punctuation: bool = False,
+                  agg_method: str = 'average', features=None):
         """
         :param src_sentences: Single source sentence in string format.
         If None, Europarl sentences for the source language are loaded
         :param trg_sentences: List of target sentences or single target sentence in string format.
         If None, Europarl sentences for the target language are loaded
-        :param remove_stopwords: if True, stopwords are removed
-        :param remove_punctuation: if True, punctuation is removed
-        :param n_max: number of maximum lines to be read
+        :param single_source: Boolean variable indicating whether a single source sentence is considered
+        or a list of different source sentences
+        If True, single source sentence is considered
+        If False, list of different source sentences is considered
+        :param remove_stopwords: If True, stopwords are removed
+        :param remove_punctuation: If True, punctuation marks are removed
+        :param n_max: Number of maximum lines to be read (only required when loading Europarl data)
+        :param to_lower: If true, set all characters in all sentences to lower case
         :param agg_method: Aggregation method for transforming list of word vectors into sentence vectors
         :param features: List of feature names to prepare.
         If features = 'all', all features specified in text_based.py are prepared
         :return: self.data -> DataFrame that contains each source and target sentence in raw,
         preprocessed and embedded form and, if specified so, alongside the prepared features for each sentence
         Return value not necessary -> self.data can also be accessed directly on the instance of this class
+        Return -1, if no valid source sentence left after preprocessing
+        Return -2, if no valid target sentence left after preprocessing
         """
-        if agg_method not in Sentences.AGGREGATION_METHODS:
-            raise ValueError("Method must be one of {}.".format(Sentences.AGGREGATION_METHODS))
-        else:
-            self.agg_method = agg_method
+        self.single_source = single_source
         self.n_max = n_max
         self.to_lower = to_lower
         self.remove_stopwords = remove_stopwords
         self.remove_punctuation = remove_punctuation
+        if agg_method not in Sentences.AGGREGATION_METHODS:
+            raise ValueError("Method must be one of {}.".format(Sentences.AGGREGATION_METHODS))
+        else:
+            self.agg_method = agg_method
         self.sentences[self.trg_lang] = self.load_sentences(self.trg_lang) if trg_sentences is None \
             else [trg_sentences] if isinstance(trg_sentences, str) else trg_sentences
         print('Target sentences loaded')
@@ -233,6 +255,12 @@ class Sentences:
         print('Sentences preprocessed')
         self.transform_into_sentence_vectors()
         print('Sentences transformed')
+        if len(self.sentences_preprocessed[self.src_lang]) == 0:
+            print('No valid source sentence left after preprocessing steps')
+            return -1
+        if len(self.sentences_preprocessed[self.trg_lang]) == 0:
+            print('No valid target sentence left after preprocessing steps')
+            return -2
         self.data['src_sentence'] = self.sentences[self.src_lang]
         self.data['trg_sentence'] = self.sentences[self.trg_lang]
         self.data['src_preprocessed'] = self.sentences_preprocessed[self.src_lang]
@@ -243,6 +271,7 @@ class Sentences:
             self.prepare_features(features=features)
         return self.data
 
+    # TODO: Adapt function to have less source sentences than target sentences in the test data set
     def create_datasets(self, n_train: int = 4000, n_test: int = 1000, frac_pos: float = 0.5):
         """
         Create train and test dataset based on given number of training and test instances
@@ -260,9 +289,9 @@ class Sentences:
         df_test = df[-n_test:]
 
         self.src_prepared_features = ['src_{}'.format(feature) for feature in ['sentence', 'preprocessed', 'embedding']] \
-                                     + ['src_{}'.format(feature) for feature in (self.prepared_features.keys())]
+                                     + ['src_{}'.format(feature) for feature in self.prepared_features]
         self.trg_prepared_features = ['trg_{}'.format(feature) for feature in ['sentence', 'preprocessed', 'embedding']]\
-                                     + ['trg_{}'.format(feature) for feature in (self.prepared_features.keys())]
+                                     + ['trg_{}'.format(feature) for feature in self.prepared_features]
 
         res_df = []
 
@@ -280,57 +309,91 @@ class Sentences:
         self.train_data, self.test_data = tuple(res_df)
         return self.train_data, self.test_data
 
-    def extraction(self, data: pd.DataFrame):
+    def set_features_dict(self, features_dict):
+        """
+        Set instance variable self.features_dict to the dictionary that is passed as an argument
+        :param features_dict: Dictionary of features, having 'text_based' and 'vectorbased' as keys
+        """
+        if features_dict == 'all':
+            self.features_dict['text_based'] = text_based.FEATURES
+            self.features_dict['vector_based'] = vector_based.FEATURES
+        else:
+            self.features_dict['text_based'] = dict((name, function)
+                                                    for name, function in text_based.FEATURES.items()
+                                                    if name in features_dict['text_based'])
+            self.features_dict['vector_based'] = dict((name, function)
+                                                      for name, function in vector_based.FEATURES.items()
+                                                      if name in features_dict['vector_based'])
+
+    def extraction(self, data: pd.DataFrame, evaluation=False):
         """
         Actual extraction of features on the given dataset
         :param data: Dataset to extract features for
+        :param evaluation: If True, the dataset with the extracted features is passed as a return value and thus,
+        this function can be used from outside for a given dataset. I.e., can then be used for evaluating the ranking
+        of sentences
+        :return: Dataset with all extracted features, only if evaluation == True
         """
-        for name, function in self.features['text_based'].items():
-            data[name] = function[0](data['src_{}'.format(function[1])],
-                                     data['trg_{}'.format(function[1])])
-            # Optional: Drop individual columns with this feature
-            data.drop(columns=['src_{}'.format(function[1]), 'trg_{}'.format(function[1])], inplace=True)
-
-        for name, function in self.features['vector_based'].items():
+        for name, function in self.features_dict['text_based'].items():
             data[name] = function[0](data['src_{}'.format(function[1])],
                                      data['trg_{}'.format(function[1])],
                                      self.single_source)
+            # Optional: Drop individual columns with this feature
+            data.drop(columns=['src_{}'.format(function[1]), 'trg_{}'.format(function[1])], inplace=True)
 
-    def extract_features(self, features, single_source: bool, train=False):
+        for name, function in self.features_dict['vector_based'].items():
+            data[name] = function[0](data['src_{}'.format(function[1])],
+                                     data['trg_{}'.format(function[1])],
+                                     self.single_source)
+        if evaluation:
+            return data
+
+    def extract_features(self, features_dict, data='all'):
         """
-        Triggers feature extraction based on a given list of features (both text_based and vector_based)
-        :param features: Dictionary containing lists of text_based and vector_based features, respectively
-        :param single_source: Boolean variable indicating whether a single source sentence is considered
-        or a list of source sentences
-        :param train: Boolean variable indicating the dataset to extract features for.
-        If True, features are extracted on self.train_data and self.test_data.
-        If False, features are extracted on self.data.
-        :return: If train == True: self.train_data, self.test data.
-        If train == False: self.data
+        Sets self.features_dict to the given dictionary of features, having 'text_based' and 'vectorbased' as keys,
+        and triggers feature extraction based on a given list of features (both text_based and vector_based)
+        :param features_dict: Dictionary containing lists of text_based and vector_based features, respectively
+        :param data: Variable indicating the dataset to extract features for.
+        If 'train_test, features are extracted on self.train_data and self.test_data.
+        If 'train', features are extracted on self.train_data only.
+        If 'test', features are extracted on self.test_data only.
+        else, features are extracted on self.data.
+        :return: If data == 'train_test, return self.train_data and self.test_data.
+        If data == 'train', return self.train_data only.
+        If data == 'test', return self.test_data only.
+        else, return self.data.
         Return value not necessary
         -> self.data, self.train_data and self.test_data can also be accessed directly on the instance of this class
         """
-        self.single_source = single_source
-
-        if features == 'all':
-            self.features['text_based'] = text_based.FEATURES
-            self.features['vector_based'] = vector_based.FEATURES
+        # self.set_features_dict(self, features_dict=features_dict)
+        if features_dict == 'all':
+            self.features_dict['text_based'] = text_based.FEATURES
+            self.features_dict['vector_based'] = vector_based.FEATURES
         else:
-            self.features['text_based'] = dict((name, function)
-                                               for name, function in text_based.FEATURES.items()
-                                               if name in features['text_based'])
-            self.features['vector_based'] = dict((name, function)
-                                                 for name, function in vector_based.FEATURES.items()
-                                                 if name in features['vector_based'])
+            self.features_dict['text_based'] = dict((name, function)
+                                                    for name, function in text_based.FEATURES.items()
+                                                    if name in features_dict['text_based'])
+            self.features_dict['vector_based'] = dict((name, function)
+                                                      for name, function in vector_based.FEATURES.items()
+                                                      if name in features_dict['vector_based'])
 
-        if train:
+        if data == 'train_test':
             for data in [self.train_data, self.test_data]:
                 self.extraction(data=data)
             return self.train_data, self.test_data
+        elif data == 'train':
+            self.extraction(data=self.train_data)
+            return self.train_data
+        elif data == 'test':
+            self.extraction(data=self.test_data)
+            return self.test_data
         else:
             self.extraction(data=self.data)
             return self.data
 
 
 if __name__ == '__main__':
+    """
+    Test section
+    """
     sens = Sentences(None, None)
