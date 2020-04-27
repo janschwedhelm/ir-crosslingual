@@ -1,5 +1,7 @@
 data_path = '../../data/'
 
+model_path = '../main/models/'
+
 monolingual_embedding_paths = {
     'de': '{}fastText_mon_emb/wiki.de.vec'.format(data_path),
     'en': '{}fastText_mon_emb/wiki.en.vec'.format(data_path),
@@ -23,3 +25,5 @@ languages = {
     'en': 'english',
     'fr': 'french'
 }
+
+languages_inversed = {v: k for k, v in languages.items()}
