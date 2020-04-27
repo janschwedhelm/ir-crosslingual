@@ -7,15 +7,15 @@ from scipy.stats import wasserstein_distance
 # Updated functions
 def cos_sim(src_vec, trg_vec, single_source=False):
     """
-    Computes cosine similarity between the embeddings of two supervised_classification
+    Computes cosine similarity between the embeddings of two sentences
     :param src_vec: Sentence embedding of the source sentence
     :param trg_vec: Sentence embedding of the target sentence
     :param single_source: True if only one source sentence is compared to multiple target sentences
-    (can be used when ranking target sentences for a single source sentence)
+    (can be used when ranking target sentences for a single source sentence, e.g. in the WebApp)
     :return: Cosine similarity of the source and the target sentence embedding
     """
     if single_source:
-        return cosine_similarity(src_vec.reshape(1, -1), np.vstack(trg_vec))[0]
+        return cosine_similarity(src_vec[0].reshape(1, -1), np.vstack(trg_vec))[0]
     else:
         return cosine_similarity(list(src_vec), list(trg_vec)).diagonal()
 
@@ -101,6 +101,7 @@ def gas(src_sen: list, trg_sen: list):
 
 # Dictionary of all vector_based features that can be extracted
 # alongside the corresponding function that needs to be executed for the given feature
+# Structure: {'feature_name': [function to be called, column on which the function needs to be performed]}
 FEATURES = {
     'cosine_similarity': [cos_sim, 'embedding']
 }
