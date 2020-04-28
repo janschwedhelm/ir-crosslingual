@@ -141,6 +141,7 @@ class SupModel:
         :return: Return accuracy value
         """
         data = sentences.test_data if data == 'test' else sentences.data
+        data = data.loc[data['translation'] == 1]
         data['accuracy@{}'.format(k)] = data.apply(
             lambda row: 1 if row['trg_sentence'] in row['predicted_sentences'][:k] else 0, axis=1)
         return sum(data['accuracy@{}'.format(k)]) / len(data)
