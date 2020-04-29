@@ -3,10 +3,18 @@
 *.zip
 *.vec
 *.xml
+*.gz
+*.tmx
+*.csv
+*.json
+*.de
+*.en
+*.fr
 
 # Test files
 *_test.ipynb
 *-checkpoint.ipynb
+*_test.py
 
 .idea
 clir.egg-info

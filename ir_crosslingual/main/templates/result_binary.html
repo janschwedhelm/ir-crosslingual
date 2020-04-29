@@ -1,0 +1,139 @@
+{% extends 'bootstrap/base.html' %}
+
+{% block navbar %}
+<nav class="navbar navbar-inverse">
+    <div class="container-fluid">
+        <div class="navbar-header">
+            <button type="button" class="navbar-toggle collapsed" data-toggle="collapse"
+                    data-target="#bs-example-navbar-collapse-1" aria-expanded="false">
+                <span class="sr-only">Toggle navigation</span>
+                <span class="icon-bar"></span>
+                <span class="icon-bar"></span>
+                <span class="icon-bar"></span>
+            </button>
+            <a class="navbar-brand" href="{{ url_for('home') }}">Cross-Lingual Sentence Retrieval</a>
+        </div>
+
+        <div class="collapse navbar-collapse" id="bs-example-navbar-collapse-1">
+            <ul class="nav navbar-nav" id="nav">
+                <li class="active">
+                    <a href="#" class="dropdown-toggle" data-toggle="dropdown" role="button" aria-haspopup="true"
+                       aria-expanded="false">Supervised<span class="caret"></span></a>
+                    <ul class="dropdown-menu">
+                        <li><a href="{{ url_for('sup_binary') }}">Binary Classifier</a></li>
+                        <li><a href="{{ url_for('sup_l2r') }}">Sentence Ranking</a></li>
+                    </ul>
+                </li>
+                <li class="dropdown">
+                    <a href="#" class="dropdown-toggle" data-toggle="dropdown" role="button" aria-haspopup="true"
+                       aria-expanded="false">Unsupervised<span class="caret"></span></a>
+                    <ul class="dropdown-menu">
+                        <li><a href="#">Semantic Similarity Measure</a></li>
+                    </ul>
+            </ul>
+        </div>
+
+    </div>
+</nav>
+{% endblock %}
+
+
+{% block content %}
+<div class="container">
+    <form action="{{ url_for('sup_binary')}}">
+        <div style="text-align:center;" class="home-template">
+            <h3>Supervised - Binary Classifier</h3>
+            <p class="lead">Results</p>
+        </div>
+
+        <div class="form-row col-lg-12">
+            <br/>
+            <div class="form-group-row col-lg-6">
+                <div class="form-group-row col-lg-3">
+                    <!--      <label for="src_lan">Source language</label>-->
+                    <select id="src_lan" name="src_lan" class="form-control" readonly>
+                        <option value="{{src_language}}" selected>{{src_language}}</option>
+                        <ol>
+                            {%for language in ['English', 'German', 'French']%}
+                            {% if language != src_language%}
+                            <option value="{{language}}">{{language}}</option>
+                            {% endif %}
+                            {%endfor%}
+
+                        </ol>
+                    </select>
+                </div>
+                <div class="form-group col-lg-9">
+                    <!--      <label for="src_sen"></label>-->
+                    <textarea class="form-control" id="lan_sentence" rows="1" readonly>{{src_sentence}}</textarea>
+                </div>
+            </div>
+            <div class="form-group col-lg-6">
+                <div class="form-group col-lg-9">
+                    <!--      <label for="trg_sen"></label>-->
+                    <textarea class="form-control" id="trg_sentence" rows="1" readonly>{{trg_sentence}}</textarea>
+                </div>
+                <div class="form-group col-lg-3">
+                    <select id="trg_lan" name="trg_lan" class="form-control" readonly>
+                        <option value="{{trg_language}}" selected>{{trg_language}}</option>
+                        <ol>
+                            {%for language in ['English', 'German', 'French']%}
+                            {% if language != trg_language%}
+                            <option value="{{language}}">{{language}}</option>
+                            {% endif %}
+                            {%endfor%}
+
+                        </ol>
+                    </select>
+                </div>
+            </div>
+        </div>
+
+        <div class="row" style=text-align:center;">
+            <br/>
+            <button type="submit" class="btn btn-default">Try again</button>
+        </div>
+    </form>
+</div>
+
+<div class="results">
+    <div style="text-align:center;">
+
+        <div class="row">
+            <br/>
+            {% if prediction == 1%}
+            <div class="alert alert-success col-md-4 col-md-offset-4" role="alert">Correct translation!</div>
+            {% elif prediction == 0%}
+            <div class="alert alert-danger col-md-4 col-md-offset-4" role="alert">Incorrect translation..</div>
+            {% elif prediction == -1.1%}
+            <div class="alert alert-warning col-md-4 col-md-offset-4" role="alert"><b>Source sentence</b> is
+                required.<br>Please type in valid sentence.
+            </div>
+            {% elif prediction == -1.2%}
+            <div class="alert alert-warning col-md-4 col-md-offset-4" role="alert"><b>Target sentence</b> is
+                required.<br>Please type in valid sentence.
+            </div>
+            {% elif prediction == -2.1%}
+            <div class="alert alert-warning col-md-4 col-md-offset-4" role="alert">Cannot understand any word of <b>source
+                sentence</b>.<br>Please check language and type in valid sentence.
+            </div>
+            {% elif prediction == -2.2%}
+            <div class="alert alert-warning col-md-4 col-md-offset-4" role="alert">Cannot understand any word of <b>target
+                sentence</b>.<br>Please check language and type in valid sentence.
+            </div>
+            {% elif prediction == -3.1%}
+            <div class="alert alert-warning col-md-4 col-md-offset-4" role="alert"><b>{{model}}</b> model is not
+                implemented yet,
+                please choose another one.
+            </div>
+            {% elif prediction == -4.1%}
+            <div class="alert alert-warning col-md-4 col-md-offset-4" role="alert">Please choose two
+                different languages.
+            </div>
+            {% endif %}
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+

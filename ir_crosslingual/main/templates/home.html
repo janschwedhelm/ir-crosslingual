@@ -1,0 +1,49 @@
+{% extends 'bootstrap/base.html' %}
+
+{% block navbar %}
+<nav class="navbar navbar-inverse">
+  <div class="container-fluid">
+    <div class="navbar-header">
+      <button type="button" class="navbar-toggle collapsed" data-toggle="collapse" data-target="#bs-example-navbar-collapse-1" aria-expanded="false">
+        <span class="sr-only">Toggle navigation</span>
+        <span class="icon-bar"></span>
+        <span class="icon-bar"></span>
+        <span class="icon-bar"></span>
+      </button>
+      <a class="navbar-brand" href="{{ url_for('home') }}">Cross-Lingual Sentence Retrieval</a>
+    </div>
+
+    <div class="collapse navbar-collapse" id="bs-example-navbar-collapse-1">
+      <ul class="nav navbar-nav" id="nav">
+        <li class="dropdown">
+          <a href="#" class="dropdown-toggle" data-toggle="dropdown" role="button" aria-haspopup="true" aria-expanded="false">Supervised<span class="caret"></span></a>
+          <ul class="dropdown-menu">
+            <li><a href="{{ url_for('sup_binary') }}">Binary Classifier</a></li>
+            <li><a href="{{ url_for('sup_l2r') }}">Sentence Ranking</a></li>
+          </ul>
+        </li>
+        <li class="dropdown">
+          <a href="#" class="dropdown-toggle" data-toggle="dropdown" role="button" aria-haspopup="true" aria-expanded="false">Unsupervised<span class="caret"></span></a>
+          <ul class="dropdown-menu">
+            <li><a href="#">Semantic Similarity Measure</a></li>
+          </ul>
+        </li>
+      </ul>
+    </div>
+
+  </div>
+</nav>
+{% endblock %}
+
+{% block content %}
+	<br/>
+	<div class="container">
+      <div style="text-align:center;" class="home-template">
+        <h3>Welcome to our Cross-Lingual Information Retrieval Service!</h3>
+        <p class="lead">We created a retrieval system, that can, given a sentence in one language, recognize
+its translation in another language.<br> Feel free to choose the method fulfilling your needs from the navigation bar.</p>
+      </div>
+
+    </div>
+{% endblock %}
+

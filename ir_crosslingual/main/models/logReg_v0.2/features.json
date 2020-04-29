@@ -1,0 +1,1 @@
+{"text_based": ["diff_num_words", "diff_num_punctuation", "diff_occ_question_mark", "diff_occ_exclamation_mark"], "vector_based": ["cosine_similarity"]}
