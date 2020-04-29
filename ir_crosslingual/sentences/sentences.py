@@ -390,9 +390,9 @@ class Sentences:
 
         for name, function in self.features_dict['vector_based'].items():
             print('Started {}'.format(name))
-            data[name] = function[0](data['src_{}'.format(function[1])],
-                                     data['trg_{}'.format(function[1])],
-                                     self.single_source)
+            data[name] = data.apply(lambda row: function[0](row['src_{}'.format(function[1])],
+                                                            row['trg_{}'.format(function[1])],
+                                                            self.single_source)[0][0], axis=1)
         if evaluation:
             return data
 

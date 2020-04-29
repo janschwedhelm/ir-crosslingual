@@ -3,6 +3,7 @@ import json
 import pandas as pd
 import numpy as np
 from sklearn.externals import joblib
+from sklearn.metrics import precision_score, accuracy_score, recall_score, f1_score
 
 from ir_crosslingual.sentences.sentences import Sentences
 from ir_crosslingual.features import text_based
@@ -11,6 +12,12 @@ from ir_crosslingual.utils import paths
 
 
 class SupModel:
+    def __init__(self):
+        self.accuracy = None
+        self.precision = None
+        self.recall = None
+        self.f1 = None
+
     @staticmethod
     def save_model(name: str, model, prepared_features: list, features: dict, info: str = None):
         """
@@ -70,6 +77,39 @@ class SupModel:
             features = json.loads(handle.read())
 
         return model, prepared_features, features
+
+    def evaluate_boolean(self, model, sentences: Sentences):
+        data = sentences.test_collection.copy()
+        features_dict = sentences.features_dict
+
+        preds = model.predict(data[[feature for values in features_dict.values() for feature in values]])
+
+        self.accuracy = accuracy_score(data['translation'], preds)
+        self.precision = precision_score(data['translation'], preds)
+        self.recall = recall_score(data['translation'], preds)
+        self.f1 = f1_score(data['translation'], preds)
+
+        return self
+
+    @staticmethod
+    def compute_map(model, sentences: Sentences):
+        data = sentences.test_collection.copy()
+        features_dict = sentences.features_dict
+
+        pred_probas = model.predict_proba(data[[feature for values in features_dict.values()
+                                                for feature in values]])[:, 1]
+
+        data['trans_proba'] = pred_probas
+
+        eval_rank = pd.DataFrame()
+        eval_rank[['query', 'true_translation']] = data[data['translation'] == 1][
+            ['src_sentence', 'trg_sentence']]
+        eval_rank['ranking'] = eval_rank.apply(lambda row: list(
+            data[data['src_sentence'] == row['query']].sort_values('trans_proba', ascending=False)[
+                'trg_sentence']), axis=1)
+        eval_rank['rank_true'] = eval_rank.apply(lambda row: row['ranking'].index(row['true_translation']) + 1, axis=1)
+
+        return sum([1 / rank for rank in eval_rank['rank_true']]) / len(eval_rank)
 
     @staticmethod
     def rank_trg_sentences(model, sentences: Sentences, single_source: bool = False, evaluation: bool = True):
