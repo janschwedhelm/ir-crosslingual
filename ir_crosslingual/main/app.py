@@ -8,7 +8,7 @@ from sklearn.metrics.pairwise import cosine_similarity
 from ir_crosslingual.embeddings import embeddings
 from ir_crosslingual.sentences import sentences
 from ir_crosslingual.supervised_classification import sup_model
-from ir_crosslingual.utils import strings
+from ir_crosslingual.utils import paths
 
 from ir_crosslingual.features import text_based
 from ir_crosslingual.features import vector_based
@@ -68,8 +68,8 @@ def sup_predict():
 
     model, prepared_features, features = sup_model.SupModel.load_model(name=name)
 
-    source = embeddings.WordEmbeddings.get_embeddings(language=strings.languages_inversed[src_language])
-    target = embeddings.WordEmbeddings.get_embeddings(language=strings.languages_inversed[trg_language])
+    source = embeddings.WordEmbeddings.get_embeddings(language=paths.languages_inversed[src_language])
+    target = embeddings.WordEmbeddings.get_embeddings(language=paths.languages_inversed[trg_language])
     sens = sentences.Sentences(src_words=source, trg_words=target)
     data = sens.load_data(src_sentences=src_sentence, trg_sentences=trg_sentence, single_source=True, features=prepared_features)
 
@@ -133,8 +133,8 @@ def sup_rank():
 
     model, prepared_features, features = sup_model.SupModel.load_model(name=name)
 
-    source = embeddings.WordEmbeddings.get_embeddings(language=strings.languages_inversed[src_language])
-    target = embeddings.WordEmbeddings.get_embeddings(language=strings.languages_inversed[trg_language])
+    source = embeddings.WordEmbeddings.get_embeddings(language=paths.languages_inversed[src_language])
+    target = embeddings.WordEmbeddings.get_embeddings(language=paths.languages_inversed[trg_language])
     sens = sentences.Sentences(src_words=source, trg_words=target)
     sens.load_data(src_sentences=src_sentence, trg_sentences=trg_sentence, single_source=True, features=prepared_features)
     sens.data.drop_duplicates(subset='trg_sentence', keep='first', inplace=True)

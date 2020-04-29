@@ -10,7 +10,7 @@ from collections import Counter
 from ir_crosslingual.features import text_based
 from ir_crosslingual.features import vector_based
 from ir_crosslingual.embeddings.embeddings import WordEmbeddings
-from ir_crosslingual.utils import strings
+from ir_crosslingual.utils import paths
 
 
 # Class for aligned translations for a given language pair
@@ -20,7 +20,7 @@ class Sentences:
 
     AGGREGATION_METHODS = {'average', 'tf_idf'}
 
-    def __init__(self,src_words: WordEmbeddings, trg_words: WordEmbeddings):
+    def __init__(self, src_words: WordEmbeddings, trg_words: WordEmbeddings):
         # Initialize attributes indicating the languages of this translation pair
         self.src_lang = src_words.language
         self.trg_lang = trg_words.language
@@ -53,7 +53,7 @@ class Sentences:
 
         self.data = pd.DataFrame()
         self.train_data = pd.DataFrame()
-        self.test_data = pd.DataFrame()
+        self.test_collection = pd.DataFrame()
 
         # Sentences.all_language_pairs['{}-{}'.format(self.src_lang, self.trg_lang)] = self
 
@@ -68,7 +68,7 @@ class Sentences:
         """
         sentences = []
         try:
-            path = strings.sentence_dictionaries['{}-{}'.format(self.src_lang, self.trg_lang)]
+            path = paths.sentence_dictionaries['{}-{}'.format(self.src_lang, self.trg_lang)]
         except KeyError:
             print('No Europarl data available for this language')
         with io.open('{}.{}'.format(path, language), 'r', encoding='utf-8', newline='\n', errors='ignore') as file:
@@ -97,7 +97,7 @@ class Sentences:
                                                      for sen in self.sentences_preprocessed[language]]
 
             if self.remove_stopwords:
-                stops = set(stopwords.words(strings.languages[language]))
+                stops = set(stopwords.words(paths.languages[language]))
                 self.sentences_preprocessed[language] = [[word for word in tokens if word not in stops]
                                                          for tokens in self.sentences_preprocessed[language]]
 
@@ -271,43 +271,89 @@ class Sentences:
             self.prepare_features(features=features)
         return self.data
 
-    # TODO: Adapt function to have less source sentences than target sentences in the test data set
-    def create_datasets(self, n_train: int = 4000, n_test: int = 1000, frac_pos: float = 0.5):
-        """
-        Create train and test dataset based on given number of training and test instances
-        and a given fraction of positive samples in the training and test dataset
-        :param n_train: Number of instances in the training dataset
-        :param n_test: Number of instances in the test dataset
-        :param frac_pos: Fraction of positive samples in the training and test dataset
-        :return: self.train_data, self.test_data -> DataFrames containing training and test datasets.
-        Return value not necessary
-        -> self.train_data and self.test_data can also be accessed directly on the instance of this class
-        """
+    def create_train_set(self, n_train: int, frac_pos: float):
         df = self.data
 
         df_train = df[:n_train]
-        df_test = df[-n_test:]
 
         self.src_prepared_features = ['src_{}'.format(feature) for feature in ['sentence', 'preprocessed', 'embedding']] \
                                      + ['src_{}'.format(feature) for feature in self.prepared_features]
-        self.trg_prepared_features = ['trg_{}'.format(feature) for feature in ['sentence', 'preprocessed', 'embedding']]\
+        self.trg_prepared_features = ['trg_{}'.format(feature) for feature in ['sentence', 'preprocessed', 'embedding']] \
                                      + ['trg_{}'.format(feature) for feature in self.prepared_features]
 
-        res_df = []
+        n_pos = math.ceil(n_train * frac_pos)
+        df_pos = df_train[:n_pos]
+        df_pos.loc[:, 'translation'] = 1
+        df_neg = df_train[self.src_prepared_features][n_pos:n_train]
+        neg_indices = [np.random.choice(df_train.drop(index=i, axis=0).index, 1)[0] for i in df_neg.index]
+        for feature in self.trg_prepared_features:
+            df_neg[feature] = list(df_train[feature].loc[neg_indices])
+        df_neg.loc[:, 'translation'] = 0
 
-        for i, data in enumerate([(n_train, df_train), (n_test, df_test)]):
-            n_pos = math.ceil(data[0] * frac_pos)
-            df_pos = data[1][:n_pos]
-            df_pos.loc[:, 'translation'] = 1
-            df_neg = data[1][self.src_prepared_features][n_pos:data[0]]
-            neg_indices = [np.random.choice(data[1].drop(index=i, axis=0).index, 1)[0] for i in df_neg.index]
-            for feature in self.trg_prepared_features:
-                df_neg[feature] = list(data[1][feature].loc[neg_indices])
-            df_neg.loc[:, 'translation'] = 0
-            res_df.append(df_pos.append(df_neg, ignore_index=True))
+        self.train_data = df_pos.append(df_neg, ignore_index=True)
 
-        self.train_data, self.test_data = tuple(res_df)
-        return self.train_data, self.test_data
+        return self.train_data
+
+    def create_test_collection(self, n_queries: int, n_docs: int):
+        df_test = self.data[-n_docs:]
+
+        self.src_prepared_features = ['src_{}'.format(feature) for feature in ['sentence', 'preprocessed', 'embedding']] \
+                                     + ['src_{}'.format(feature) for feature in self.prepared_features]
+        self.trg_prepared_features = ['trg_{}'.format(feature) for feature in ['sentence', 'preprocessed', 'embedding']] \
+                                     + ['trg_{}'.format(feature) for feature in self.prepared_features]
+
+        df_queries = df_test[:n_queries][self.src_prepared_features]
+        df_docs = df_test[self.trg_prepared_features]
+
+        cart_prod = pd.merge(df_queries.assign(key=0), df_docs.assign(key=0), on='key').drop('key', axis=1)
+
+        self.test_collection = pd.merge(cart_prod, df_test, how='left', on=['src_sentence', 'trg_sentence'],
+                                        indicator='translation')
+        self.test_collection['translation'] = np.where(self.test_collection.translation == 'both', 1, 0)
+        self.test_collection.rename(columns={col: col.split('_x')[0] for col in self.test_collection.columns
+                                        if col.endswith('_x')}, inplace=True)
+        self.test_collection.drop(columns=[col for col in self.test_collection.columns if col.endswith('_y')],
+                                  inplace=True)
+
+        return self.test_collection
+
+    # # TODO: Adapt function to have less source sentences than target sentences in the test data set
+    # def create_datasets(self, n_train: int = 4000, n_test: int = 1000, frac_pos: float = 0.5):
+    #     """
+    #     Create train and test dataset based on given number of training and test instances
+    #     and a given fraction of positive samples in the training and test dataset
+    #     :param n_train: Number of instances in the training dataset
+    #     :param n_test: Number of instances in the test dataset
+    #     :param frac_pos: Fraction of positive samples in the training and test dataset
+    #     :return: self.train_data, self.test_data -> DataFrames containing training and test datasets.
+    #     Return value not necessary
+    #     -> self.train_data and self.test_data can also be accessed directly on the instance of this class
+    #     """
+    #     df = self.data
+    #
+    #     df_train = df[:n_train]
+    #     df_test = df[-n_test:]
+    #
+    #     self.src_prepared_features = ['src_{}'.format(feature) for feature in ['sentence', 'preprocessed', 'embedding']] \
+    #                                  + ['src_{}'.format(feature) for feature in self.prepared_features]
+    #     self.trg_prepared_features = ['trg_{}'.format(feature) for feature in ['sentence', 'preprocessed', 'embedding']]\
+    #                                  + ['trg_{}'.format(feature) for feature in self.prepared_features]
+    #
+    #     res_df = []
+    #
+    #     for i, data in enumerate([(n_train, df_train), (n_test, df_test)]):
+    #         n_pos = math.ceil(data[0] * frac_pos)
+    #         df_pos = data[1][:n_pos]
+    #         df_pos.loc[:, 'translation'] = 1
+    #         df_neg = data[1][self.src_prepared_features][n_pos:data[0]]
+    #         neg_indices = [np.random.choice(data[1].drop(index=i, axis=0).index, 1)[0] for i in df_neg.index]
+    #         for feature in self.trg_prepared_features:
+    #             df_neg[feature] = list(data[1][feature].loc[neg_indices])
+    #         df_neg.loc[:, 'translation'] = 0
+    #         res_df.append(df_pos.append(df_neg, ignore_index=True))
+    #
+    #     self.train_data, self.test_data = tuple(res_df)
+    #     return self.train_data, self.test_data
 
     def set_features_dict(self, features_dict):
         """
@@ -335,6 +381,7 @@ class Sentences:
         :return: Dataset with all extracted features, only if evaluation == True
         """
         for name, function in self.features_dict['text_based'].items():
+            print('Started {}'.format(name))
             data[name] = function[0](data['src_{}'.format(function[1])],
                                      data['trg_{}'.format(function[1])],
                                      self.single_source)
@@ -342,6 +389,7 @@ class Sentences:
             data.drop(columns=['src_{}'.format(function[1]), 'trg_{}'.format(function[1])], inplace=True)
 
         for name, function in self.features_dict['vector_based'].items():
+            print('Started {}'.format(name))
             data[name] = function[0](data['src_{}'.format(function[1])],
                                      data['trg_{}'.format(function[1])],
                                      self.single_source)
@@ -378,15 +426,15 @@ class Sentences:
                                                       if name in features_dict['vector_based'])
 
         if data == 'train_test':
-            for data in [self.train_data, self.test_data]:
+            for data in [self.train_data, self.test_collection]:
                 self.extraction(data=data)
-            return self.train_data, self.test_data
+            return self.train_data, self.test_collection
         elif data == 'train':
             self.extraction(data=self.train_data)
             return self.train_data
         elif data == 'test':
-            self.extraction(data=self.test_data)
-            return self.test_data
+            self.extraction(data=self.test_collection)
+            return self.test_collection
         else:
             self.extraction(data=self.data)
             return self.data

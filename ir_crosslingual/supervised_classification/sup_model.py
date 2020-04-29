@@ -7,7 +7,7 @@ from sklearn.externals import joblib
 from ir_crosslingual.sentences.sentences import Sentences
 from ir_crosslingual.features import text_based
 from ir_crosslingual.features import vector_based
-from ir_crosslingual.utils import strings
+from ir_crosslingual.utils import paths
 
 
 class SupModel:
@@ -24,26 +24,26 @@ class SupModel:
         :param info: Optional: Further information regarding the training process. E.g., number of training examples
         :return: -1 if a folder with the given name already exists
         """
-        if not os.path.exists('{}{}'.format(strings.model_path, name)):
-            os.makedirs('{}{}'.format(strings.model_path, name))
+        if not os.path.exists('{}{}'.format(paths.model_path, name)):
+            os.makedirs('{}{}'.format(paths.model_path, name))
         else:
             print('A folder with this name already exists. Please choose a different one.')
             return -1
 
         # Save model to file
-        joblib.dump(model, '{}{}/model.pkl'.format(strings.model_path, name))
+        joblib.dump(model, '{}{}/model.pkl'.format(paths.model_path, name))
 
         # Save list of prepared features to file
-        with open('{}{}/prepared_features.txt'.format(strings.model_path, name), 'w') as f:
+        with open('{}{}/prepared_features.txt'.format(paths.model_path, name), 'w') as f:
             f.write('\n'.join(prepared_features))
 
         # Save dict of actual features
-        with open('{}{}/features.json'.format(strings.model_path, name), 'w') as f:
+        with open('{}{}/features.json'.format(paths.model_path, name), 'w') as f:
             json.dump(features, f)
 
         # Save info if given
         if info is not None:
-            with open('{}{}/info.txt'.format(strings.model_path, name), 'w') as f:
+            with open('{}{}/info.txt'.format(paths.model_path, name), 'w') as f:
                 f.write(info)
 
     @staticmethod
@@ -55,18 +55,18 @@ class SupModel:
         :return: Pretrained model object, list of features to prepare and dictionary containing text_based
         and vector_based features
         """
-        if not os.path.exists('{}{}'.format(strings.model_path, name)):
+        if not os.path.exists('{}{}'.format(paths.model_path, name)):
             raise FileNotFoundError('A model with this name does not exist yet.')
 
         # Load model
-        model = joblib.load(open('{}{}/model.pkl'.format(strings.model_path, name), 'rb'))
+        model = joblib.load(open('{}{}/model.pkl'.format(paths.model_path, name), 'rb'))
 
         # Load list of prepared features from file
-        with open('{}{}/prepared_features.txt'.format(strings.model_path, name)) as f:
+        with open('{}{}/prepared_features.txt'.format(paths.model_path, name)) as f:
             prepared_features = f.read().splitlines()
 
         # Load dict of actual features
-        with open('{}{}/features.json'.format(strings.model_path, name)) as handle:
+        with open('{}{}/features.json'.format(paths.model_path, name)) as handle:
             features = json.loads(handle.read())
 
         return model, prepared_features, features
