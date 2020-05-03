@@ -4,8 +4,10 @@ import math
 import string
 import numpy as np
 import pandas as pd
-from nltk.corpus import stopwords
 from collections import Counter
+
+from nltk.corpus import stopwords
+from sklearn.feature_extraction.text import TfidfVectorizer
 
 from ir_crosslingual.features import text_based
 from ir_crosslingual.features import vector_based
@@ -50,6 +52,8 @@ class Sentences:
         self.src_prepared_features = list()
         self.trg_prepared_features = list()
         self.features_dict = dict()
+
+        self.vectorizer = dict()
 
         self.data = pd.DataFrame()
         self.train_data = pd.DataFrame()
@@ -101,20 +105,29 @@ class Sentences:
                 self.sentences_preprocessed[language] = [[word for word in tokens if word not in stops]
                                                          for tokens in self.sentences_preprocessed[language]]
 
-    # TODO: Adapt this function to new sentence structure
     @staticmethod
-    def tf_idf(sentence_tokens: list):
+    def tf(sentence: list):
         """
-        Computes TF-IDF scores of term-sentence pairs.
-        :param sentence_tokens: list of tokenized supervised_classification
+        Compute term-frequency values for each unique term in a given (tokenized) sentence
+        :param sentence: Sentence to compute tf values for, given as a list of tokens
+        :return: term-frequency values of the given sentence
+        """
+        sen_counter = dict(Counter(sen for sen in sentence))
+        tf_values = {k: (1 + math.log10(v)) / (1 + math.log10(np.max(list(sen_counter.values())))) for k, v in
+                     sen_counter.items()}
+        return tf_values
+
+    def tf_idf(self, sentence: list, language: str):
+        """
+        Computes TF-IDF scores of all terms in a given sentence.
+        :param sentence: Sentence to compute tf-idf weights for, given as a list of tokens
+        :param language: language of the sentence
         :return: list of TF-IDF scores of term-sentence pairs, arranged as dictionaries
         """
-        df = dict(Counter(token for sen in sentence_tokens for token in set(sen)))
-        idf = {k: math.log10(len(sentence_tokens) / v) for k, v in df.items()}
-        tf = [{k: (1 + math.log10(v)) / (1 + math.log10(np.max(list(dic.values())))) for k, v in dic.items()} for dic in
-              [dict(Counter(sen)) for sen in sentence_tokens]]
-        tf_idf = [{k: v * idf[k] for k, v in dic.items()} for dic in tf]
-        return tf_idf
+        tf_values = self.tf(sentence)
+        tf_idf_values = {k: v * self.vectorizer[language].idf_[self.vectorizer[language].vocabulary_[k]]
+                         for k, v in tf_values.items()}
+        return tf_idf_values
 
     def transform_src_embedding_space(self):
         """
@@ -145,39 +158,44 @@ class Sentences:
             sentences = self.sentences_preprocessed[language]
             word2id = self.word_embeddings[language].word2id
 
-            words_found = [[word2id[word] for word in sen if word in word2id.keys()] for sen in sentences]
-
-            self.invalid_sentences.update({i for i in range(len(sentences))
-                                           if len(words_found[i]) == 0})
-
-            if self.invalid_sentences:
-                for i in self.invalid_sentences:
-                    print("Could not find a term of the sentence '{}' in word embedding vocabulary and thus, "
-                      "could not calculate the respective embedding vector.".format(self.sentences[language][i]))
-
             if self.agg_method == 'average':
+                words_found = [[word2id[word] for word in sen if word in word2id.keys()] for sen in sentences]
+
+                self.invalid_sentences.update({i for i in range(len(sentences))
+                                               if len(words_found[i]) == 0})
+
                 self.sentence_embeddings[language] = [sum(word_embeddings[words_found[i]]) / len(words_found[i])
                                                       if i not in self.invalid_sentences
                                                       else [0]*300 for i in range(len(sentences))]
                 print('Sentences embeddings extracted in {}'.format(language))
 
-            # TODO: Adapt tfidf version to new structure
-            if self.agg_method == 'tf_idf':
+            elif self.agg_method == 'tf_idf':
+                words_found = [[word2id[word] for word in set(sen) if word in word2id.keys()] for sen in sentences]
+
+                self.invalid_sentences.update({i for i in range(len(sentences))
+                                               if len(words_found[i]) == 0})
+
+                self.vectorizer[language] = TfidfVectorizer(tokenizer=lambda x: x, preprocessor=lambda x: x)
+                self.vectorizer[language].fit(sentences)
+
                 self.sentence_embeddings[language] = []
-                if len(self.sentences[language]) == 1:
-                    raise ZeroDivisionError(
-                        "TF-IDF scores cannot be computed since number of supervised_classification equals 1. "
-                        "Use 'average' instead.")
-                tf_idf_scores = Sentences.tf_idf(self.sentences[language])
-                for i, tokens in enumerate(self.sentences[language]):
-                    if i not in self.invalid_sentences[language]:
+                for i, tokens in enumerate(sentences):
+                    if i not in self.invalid_sentences:
+                        tf_idf_scores = {word2id[k]: v for k, v in self.tf_idf(tokens, language=language).items()
+                                         if k in word2id.keys()}
                         vec = np.zeros((1, 300))
-                        for token in tokens:
-                            if token in self.word_embeddings[language].word2id.keys():
-                                vec += tf_idf_scores[i][token] * self.word_embeddings[language].embeddings[self.word_embeddings[language].word2id[token]]
-                        self.sentence_embeddings[language].append(vec / sum([v for k, v in tf_idf_scores[i].items() if k in self.word_embeddings[language].word2id.keys()]))
+                        for word_idx, tf_idf_score in tf_idf_scores.items():
+                            vec += tf_idf_score * word_embeddings[word_idx]
+                        self.sentence_embeddings[language].append(vec / sum(tf_idf_scores.values()))
                     else:
-                        self.sentence_embeddings[language].append(np.zeros(300))
+                        self.sentence_embeddings[language].append([0]*300)
+                self.sentence_embeddings[language] = np.vstack(self.sentence_embeddings[language])
+
+            if self.invalid_sentences:
+                for i in self.invalid_sentences:
+                    print("Could not find a term of the sentence '{}' in word embedding vocabulary and thus, "
+                          "could not calculate the respective embedding vector.".format(self.sentences[language][i]))
+
             self.words_found[language] = words_found
         self.delete_invalid_sentences()
         self.transform_src_embedding_space()
@@ -358,7 +376,7 @@ class Sentences:
     def set_features_dict(self, features_dict):
         """
         Set instance variable self.features_dict to the dictionary that is passed as an argument
-        :param features_dict: Dictionary of features, having 'text_based' and 'vectorbased' as keys
+        :param features_dict: Dictionary of features, having 'text_based' and 'vector_based' as keys
         """
         if features_dict == 'all':
             self.features_dict['text_based'] = text_based.FEATURES
