@@ -6,6 +6,7 @@ import numpy as np
 import pandas as pd
 from nltk.corpus import stopwords
 from collections import Counter
+from sklearn.decomposition import PCA
 
 from ir_crosslingual.features import text_based
 from ir_crosslingual.features import vector_based
@@ -134,7 +135,7 @@ class Sentences:
                 self.sentence_embeddings[language] = np.delete(self.sentence_embeddings[language], idx, axis=0)
                 del self.words_found[language][idx]
 
-    def transform_into_sentence_vectors(self):
+    def transform_into_sentence_vectors(self, align=False):
         """
         Transform preprocessed sentences into sentence vectors.
         Transformed sentence embeddings are then stored in self.sentence_embeddings[src_lang] and
@@ -180,7 +181,8 @@ class Sentences:
                         self.sentence_embeddings[language].append(np.zeros(300))
             self.words_found[language] = words_found
         self.delete_invalid_sentences()
-        self.transform_src_embedding_space()
+        if align:
+            self.transform_src_embedding_space()
 
     def prepare_features(self, features):
         """
@@ -211,9 +213,44 @@ class Sentences:
                         lambda row: function[0](row['{}_{}'.format(e, function[1])], **function[2]), axis=1)
         return self.data
 
+    def reduce_dim(self, data, new_dim, use_ppa=True, threshold=8):
+        # 1. PPA #1
+        # PCA to get Top Components
+        def ppa(data, N, D):
+            pca = PCA(n_components=N)
+            data = data - np.mean(data)
+            _ = pca.fit_transform(data)
+            U = pca.components_
+
+            z = []
+
+            # Removing Projections on Top Components
+            for v in data:
+                for u in U[0:D]:
+                    v = v - np.dot(u.transpose(), v) * u
+                z.append(v)
+            return np.asarray(z)
+
+        X = np.vstack(data)
+
+        if use_ppa:
+            X = ppa(X, X.shape[1], threshold)
+
+        # 2. PCA
+        # PCA Dim Reduction
+        pca = PCA(n_components=new_dim)
+        X = X - np.mean(X)
+        X = pca.fit_transform(X)
+
+        # 3. PPA #2
+        if use_ppa:
+            X = ppa(X, new_dim, threshold)
+
+        return pd.Series(X.tolist())
+
     def load_data(self, src_sentences=None, trg_sentences=None, single_source: bool = False, n_max: int = 5000,
                   to_lower = True, remove_stopwords: bool = True, remove_punctuation: bool = False,
-                  agg_method: str = 'average', features=None):
+                  agg_method: str = 'average', features=None, dim_red=None, align=False):
         """
         :param src_sentences: Single source sentence in string format.
         If None, Europarl sentences for the source language are loaded
@@ -253,7 +290,17 @@ class Sentences:
         print('Source sentences loaded')
         self.preprocess_sentences()
         print('Sentences preprocessed')
-        self.transform_into_sentence_vectors()
+        if align:
+            self.transform_into_sentence_vectors(align=True)
+        else:
+            self.transform_into_sentence_vectors(align=False)
+        self.data['src_embedding'] = list(self.sentence_embeddings[self.src_lang])
+        self.data['trg_embedding'] = list(self.sentence_embeddings[self.trg_lang])
+        if dim_red:
+            self.data[['src_embedding_{}'.format(i) for i in range(dim_red)]] = pd.DataFrame(
+                self.reduce_dim(self.data['src_embedding'], dim_red).tolist())
+            self.data[['trg_embedding_{}'.format(i) for i in range(dim_red)]] = pd.DataFrame(
+                self.reduce_dim(self.data['trg_embedding'], dim_red).tolist())
         print('Sentences transformed')
         if len(self.sentences_preprocessed[self.src_lang]) == 0:
             print('No valid source sentence left after preprocessing steps')
@@ -265,8 +312,6 @@ class Sentences:
         self.data['trg_sentence'] = self.sentences[self.trg_lang]
         self.data['src_preprocessed'] = self.sentences_preprocessed[self.src_lang]
         self.data['trg_preprocessed'] = self.sentences_preprocessed[self.trg_lang]
-        self.data['src_embedding'] = list(self.sentence_embeddings[self.src_lang])
-        self.data['trg_embedding'] = list(self.sentence_embeddings[self.trg_lang])
         if features is not None:
             self.prepare_features(features=features)
         return self.data
