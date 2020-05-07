@@ -6,11 +6,12 @@ import numpy as np
 import pandas as pd
 from nltk.corpus import stopwords
 from collections import Counter
+from sklearn.decomposition import PCA
 
 from ir_crosslingual.features import text_based
 from ir_crosslingual.features import vector_based
 from ir_crosslingual.embeddings.embeddings import WordEmbeddings
-from ir_crosslingual.utils import strings
+from ir_crosslingual.utils import paths
 
 
 # Class for aligned translations for a given language pair
@@ -20,7 +21,7 @@ class Sentences:
 
     AGGREGATION_METHODS = {'average', 'tf_idf'}
 
-    def __init__(self,src_words: WordEmbeddings, trg_words: WordEmbeddings):
+    def __init__(self, src_words: WordEmbeddings, trg_words: WordEmbeddings):
         # Initialize attributes indicating the languages of this translation pair
         self.src_lang = src_words.language
         self.trg_lang = trg_words.language
@@ -53,7 +54,7 @@ class Sentences:
 
         self.data = pd.DataFrame()
         self.train_data = pd.DataFrame()
-        self.test_data = pd.DataFrame()
+        self.test_collection = pd.DataFrame()
 
         # Sentences.all_language_pairs['{}-{}'.format(self.src_lang, self.trg_lang)] = self
 
@@ -68,7 +69,7 @@ class Sentences:
         """
         sentences = []
         try:
-            path = strings.sentence_dictionaries['{}-{}'.format(self.src_lang, self.trg_lang)]
+            path = paths.sentence_dictionaries['{}-{}'.format(self.src_lang, self.trg_lang)]
         except KeyError:
             print('No Europarl data available for this language')
         with io.open('{}.{}'.format(path, language), 'r', encoding='utf-8', newline='\n', errors='ignore') as file:
@@ -97,7 +98,7 @@ class Sentences:
                                                      for sen in self.sentences_preprocessed[language]]
 
             if self.remove_stopwords:
-                stops = set(stopwords.words(strings.languages[language]))
+                stops = set(stopwords.words(paths.languages[language]))
                 self.sentences_preprocessed[language] = [[word for word in tokens if word not in stops]
                                                          for tokens in self.sentences_preprocessed[language]]
 
@@ -134,7 +135,7 @@ class Sentences:
                 self.sentence_embeddings[language] = np.delete(self.sentence_embeddings[language], idx, axis=0)
                 del self.words_found[language][idx]
 
-    def transform_into_sentence_vectors(self):
+    def transform_into_sentence_vectors(self, align=False):
         """
         Transform preprocessed sentences into sentence vectors.
         Transformed sentence embeddings are then stored in self.sentence_embeddings[src_lang] and
@@ -180,7 +181,8 @@ class Sentences:
                         self.sentence_embeddings[language].append(np.zeros(300))
             self.words_found[language] = words_found
         self.delete_invalid_sentences()
-        self.transform_src_embedding_space()
+        if align:
+            self.transform_src_embedding_space()
 
     def prepare_features(self, features):
         """
@@ -211,9 +213,44 @@ class Sentences:
                         lambda row: function[0](row['{}_{}'.format(e, function[1])], **function[2]), axis=1)
         return self.data
 
+    def reduce_dim(self, data, new_dim, use_ppa=True, threshold=8):
+        # 1. PPA #1
+        # PCA to get Top Components
+        def ppa(data, N, D):
+            pca = PCA(n_components=N)
+            data = data - np.mean(data)
+            _ = pca.fit_transform(data)
+            U = pca.components_
+
+            z = []
+
+            # Removing Projections on Top Components
+            for v in data:
+                for u in U[0:D]:
+                    v = v - np.dot(u.transpose(), v) * u
+                z.append(v)
+            return np.asarray(z)
+
+        X = np.vstack(data)
+
+        if use_ppa:
+            X = ppa(X, X.shape[1], threshold)
+
+        # 2. PCA
+        # PCA Dim Reduction
+        pca = PCA(n_components=new_dim)
+        X = X - np.mean(X)
+        X = pca.fit_transform(X)
+
+        # 3. PPA #2
+        if use_ppa:
+            X = ppa(X, new_dim, threshold)
+
+        return pd.Series(X.tolist())
+
     def load_data(self, src_sentences=None, trg_sentences=None, single_source: bool = False, n_max: int = 5000,
                   to_lower = True, remove_stopwords: bool = True, remove_punctuation: bool = False,
-                  agg_method: str = 'average', features=None):
+                  agg_method: str = 'average', features=None, dim_red=None, align=False):
         """
         :param src_sentences: Single source sentence in string format.
         If None, Europarl sentences for the source language are loaded
@@ -253,7 +290,17 @@ class Sentences:
         print('Source sentences loaded')
         self.preprocess_sentences()
         print('Sentences preprocessed')
-        self.transform_into_sentence_vectors()
+        if align:
+            self.transform_into_sentence_vectors(align=True)
+        else:
+            self.transform_into_sentence_vectors(align=False)
+        self.data['src_embedding'] = list(self.sentence_embeddings[self.src_lang])
+        self.data['trg_embedding'] = list(self.sentence_embeddings[self.trg_lang])
+        if dim_red:
+            self.data[['src_embedding_{}'.format(i) for i in range(dim_red)]] = pd.DataFrame(
+                self.reduce_dim(self.data['src_embedding'], dim_red).tolist())
+            self.data[['trg_embedding_{}'.format(i) for i in range(dim_red)]] = pd.DataFrame(
+                self.reduce_dim(self.data['trg_embedding'], dim_red).tolist())
         print('Sentences transformed')
         if len(self.sentences_preprocessed[self.src_lang]) == 0:
             print('No valid source sentence left after preprocessing steps')
@@ -265,49 +312,93 @@ class Sentences:
         self.data['trg_sentence'] = self.sentences[self.trg_lang]
         self.data['src_preprocessed'] = self.sentences_preprocessed[self.src_lang]
         self.data['trg_preprocessed'] = self.sentences_preprocessed[self.trg_lang]
-        self.data['src_embedding'] = list(self.sentence_embeddings[self.src_lang])
-        self.data['trg_embedding'] = list(self.sentence_embeddings[self.trg_lang])
         if features is not None:
             self.prepare_features(features=features)
         return self.data
 
-    # TODO: Adapt function to have less source sentences than target sentences in the test data set
-    def create_datasets(self, n_train: int = 4000, n_test: int = 1000, frac_pos: float = 0.5):
-        """
-        Create train and test dataset based on given number of training and test instances
-        and a given fraction of positive samples in the training and test dataset
-        :param n_train: Number of instances in the training dataset
-        :param n_test: Number of instances in the test dataset
-        :param frac_pos: Fraction of positive samples in the training and test dataset
-        :return: self.train_data, self.test_data -> DataFrames containing training and test datasets.
-        Return value not necessary
-        -> self.train_data and self.test_data can also be accessed directly on the instance of this class
-        """
+    def create_train_set(self, n_train: int, frac_pos: float):
         df = self.data
 
         df_train = df[:n_train]
-        df_test = df[-n_test:]
 
         self.src_prepared_features = ['src_{}'.format(feature) for feature in ['sentence', 'preprocessed', 'embedding']] \
                                      + ['src_{}'.format(feature) for feature in self.prepared_features]
-        self.trg_prepared_features = ['trg_{}'.format(feature) for feature in ['sentence', 'preprocessed', 'embedding']]\
+        self.trg_prepared_features = ['trg_{}'.format(feature) for feature in ['sentence', 'preprocessed', 'embedding']] \
                                      + ['trg_{}'.format(feature) for feature in self.prepared_features]
 
-        res_df = []
+        n_pos = math.ceil(n_train * frac_pos)
+        df_pos = df_train[:n_pos]
+        df_pos.loc[:, 'translation'] = 1
+        df_neg = df_train[self.src_prepared_features][n_pos:n_train]
+        neg_indices = [np.random.choice(df_train.drop(index=i, axis=0).index, 1)[0] for i in df_neg.index]
+        for feature in self.trg_prepared_features:
+            df_neg[feature] = list(df_train[feature].loc[neg_indices])
+        df_neg.loc[:, 'translation'] = 0
 
-        for i, data in enumerate([(n_train, df_train), (n_test, df_test)]):
-            n_pos = math.ceil(data[0] * frac_pos)
-            df_pos = data[1][:n_pos]
-            df_pos.loc[:, 'translation'] = 1
-            df_neg = data[1][self.src_prepared_features][n_pos:data[0]]
-            neg_indices = [np.random.choice(data[1].drop(index=i, axis=0).index, 1)[0] for i in df_neg.index]
-            for feature in self.trg_prepared_features:
-                df_neg[feature] = list(data[1][feature].loc[neg_indices])
-            df_neg.loc[:, 'translation'] = 0
-            res_df.append(df_pos.append(df_neg, ignore_index=True))
+        self.train_data = df_pos.append(df_neg, ignore_index=True)
 
-        self.train_data, self.test_data = tuple(res_df)
-        return self.train_data, self.test_data
+        return self.train_data
+
+    def create_test_collection(self, n_queries: int, n_docs: int):
+        df_test = self.data[-n_docs:]
+
+        self.src_prepared_features = ['src_{}'.format(feature) for feature in ['sentence', 'preprocessed', 'embedding']] \
+                                     + ['src_{}'.format(feature) for feature in self.prepared_features]
+        self.trg_prepared_features = ['trg_{}'.format(feature) for feature in ['sentence', 'preprocessed', 'embedding']] \
+                                     + ['trg_{}'.format(feature) for feature in self.prepared_features]
+
+        df_queries = df_test[:n_queries][self.src_prepared_features]
+        df_docs = df_test[self.trg_prepared_features]
+
+        cart_prod = pd.merge(df_queries.assign(key=0), df_docs.assign(key=0), on='key').drop('key', axis=1)
+
+        self.test_collection = pd.merge(cart_prod, df_test, how='left', on=['src_sentence', 'trg_sentence'],
+                                        indicator='translation')
+        self.test_collection['translation'] = np.where(self.test_collection.translation == 'both', 1, 0)
+        self.test_collection.rename(columns={col: col.split('_x')[0] for col in self.test_collection.columns
+                                        if col.endswith('_x')}, inplace=True)
+        self.test_collection.drop(columns=[col for col in self.test_collection.columns if col.endswith('_y')],
+                                  inplace=True)
+
+        return self.test_collection
+
+    # # TODO: Adapt function to have less source sentences than target sentences in the test data set
+    # def create_datasets(self, n_train: int = 4000, n_test: int = 1000, frac_pos: float = 0.5):
+    #     """
+    #     Create train and test dataset based on given number of training and test instances
+    #     and a given fraction of positive samples in the training and test dataset
+    #     :param n_train: Number of instances in the training dataset
+    #     :param n_test: Number of instances in the test dataset
+    #     :param frac_pos: Fraction of positive samples in the training and test dataset
+    #     :return: self.train_data, self.test_data -> DataFrames containing training and test datasets.
+    #     Return value not necessary
+    #     -> self.train_data and self.test_data can also be accessed directly on the instance of this class
+    #     """
+    #     df = self.data
+    #
+    #     df_train = df[:n_train]
+    #     df_test = df[-n_test:]
+    #
+    #     self.src_prepared_features = ['src_{}'.format(feature) for feature in ['sentence', 'preprocessed', 'embedding']] \
+    #                                  + ['src_{}'.format(feature) for feature in self.prepared_features]
+    #     self.trg_prepared_features = ['trg_{}'.format(feature) for feature in ['sentence', 'preprocessed', 'embedding']]\
+    #                                  + ['trg_{}'.format(feature) for feature in self.prepared_features]
+    #
+    #     res_df = []
+    #
+    #     for i, data in enumerate([(n_train, df_train), (n_test, df_test)]):
+    #         n_pos = math.ceil(data[0] * frac_pos)
+    #         df_pos = data[1][:n_pos]
+    #         df_pos.loc[:, 'translation'] = 1
+    #         df_neg = data[1][self.src_prepared_features][n_pos:data[0]]
+    #         neg_indices = [np.random.choice(data[1].drop(index=i, axis=0).index, 1)[0] for i in df_neg.index]
+    #         for feature in self.trg_prepared_features:
+    #             df_neg[feature] = list(data[1][feature].loc[neg_indices])
+    #         df_neg.loc[:, 'translation'] = 0
+    #         res_df.append(df_pos.append(df_neg, ignore_index=True))
+    #
+    #     self.train_data, self.test_data = tuple(res_df)
+    #     return self.train_data, self.test_data
 
     def set_features_dict(self, features_dict):
         """
@@ -335,6 +426,7 @@ class Sentences:
         :return: Dataset with all extracted features, only if evaluation == True
         """
         for name, function in self.features_dict['text_based'].items():
+            print('Started {}'.format(name))
             data[name] = function[0](data['src_{}'.format(function[1])],
                                      data['trg_{}'.format(function[1])],
                                      self.single_source)
@@ -342,9 +434,10 @@ class Sentences:
             data.drop(columns=['src_{}'.format(function[1]), 'trg_{}'.format(function[1])], inplace=True)
 
         for name, function in self.features_dict['vector_based'].items():
-            data[name] = function[0](data['src_{}'.format(function[1])],
-                                     data['trg_{}'.format(function[1])],
-                                     self.single_source)
+            print('Started {}'.format(name))
+            data[name] = data.apply(lambda row: function[0](row['src_{}'.format(function[1])],
+                                                            row['trg_{}'.format(function[1])],
+                                                            self.single_source)[0][0], axis=1)
         if evaluation:
             return data
 
@@ -378,15 +471,15 @@ class Sentences:
                                                       if name in features_dict['vector_based'])
 
         if data == 'train_test':
-            for data in [self.train_data, self.test_data]:
+            for data in [self.train_data, self.test_collection]:
                 self.extraction(data=data)
-            return self.train_data, self.test_data
+            return self.train_data, self.test_collection
         elif data == 'train':
             self.extraction(data=self.train_data)
             return self.train_data
         elif data == 'test':
-            self.extraction(data=self.test_data)
-            return self.test_data
+            self.extraction(data=self.test_collection)
+            return self.test_collection
         else:
             self.extraction(data=self.data)
             return self.data

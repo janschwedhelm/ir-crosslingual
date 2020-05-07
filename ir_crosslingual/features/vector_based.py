@@ -17,7 +17,7 @@ def cos_sim(src_vec, trg_vec, single_source=False):
     if single_source:
         return cosine_similarity(src_vec[0].reshape(1, -1), np.vstack(trg_vec))[0]
     else:
-        return cosine_similarity(list(src_vec), list(trg_vec)).diagonal()
+        return cosine_similarity(src_vec.reshape(1, -1), trg_vec.reshape(1, -1))
 
 
 # TODO: Old functions that need to adapted to new structure

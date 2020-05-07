@@ -19,7 +19,6 @@ sentence_dictionaries = {
     'de-fr': '{}europarl_datasets/de-fr/Europarl.de-fr'.format(data_path),
     'fr-de': '{}europarl_datasets/de-fr/Europarl.de-fr'.format(data_path)
 }
-
 languages = {
     'de': 'german',
     'en': 'english',

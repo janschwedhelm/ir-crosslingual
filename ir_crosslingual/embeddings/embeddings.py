@@ -2,7 +2,7 @@ import io
 import os
 import numpy as np
 from numpy.linalg import svd
-from ir_crosslingual.utils import strings
+from ir_crosslingual.utils import paths
 
 class WordEmbeddings:
 
@@ -34,7 +34,7 @@ class WordEmbeddings:
         :return:
         """
         vectors = []
-        path = strings.monolingual_embedding_paths[self.language]
+        path = paths.monolingual_embedding_paths[self.language]
         with io.open(path, 'r', encoding='utf-8', newline='\n', errors='ignore') as file:
             next(file)
             for index, line in enumerate(file):
@@ -110,7 +110,7 @@ class WordEmbeddings:
         target = cls.get_embeddings(trg_lang)
         languages = '{}-{}'.format(src_lang, trg_lang)
 
-        expert_dict = strings.expert_dictionaries[languages]
+        expert_dict = paths.expert_dictionaries[languages]
         index_pairs = []
         word_pairs = []
         misfit = 0
