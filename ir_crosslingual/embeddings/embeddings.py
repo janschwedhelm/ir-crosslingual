@@ -1,5 +1,6 @@
 import io
 import os
+import pickle
 import numpy as np
 from numpy.linalg import svd
 from ir_crosslingual.utils import paths
@@ -33,18 +34,12 @@ class WordEmbeddings:
         Also store self.word2id and self.id2word dictionaries
         :return:
         """
-        vectors = []
-        path = paths.monolingual_embedding_paths[self.language]
-        with io.open(path, 'r', encoding='utf-8', newline='\n', errors='ignore') as file:
-            next(file)
-            for index, line in enumerate(file):
-                word, vec = line.rstrip().split(' ', 1)
-                vec = np.fromstring(vec, sep=' ')
-                vectors.append(vec)
-                self.word2id[word] = index
-                if len(self.word2id) == WordEmbeddings.N_MAX:
-                    break
-        self.embeddings = np.vstack(vectors)
+        # Load embeddings
+        self.embeddings = np.load('{}embeddings.npy'.format(paths.monolingual_embedding_paths[self.language]))
+        # Load word2id dictionary
+        with open('{}word2id.pkl'.format(paths.monolingual_embedding_paths[self.language]), 'rb') as f:
+            self.word2id = pickle.load(f)
+        # Create id2word dictionary
         self.id2word = {v: k for k, v in self.word2id.items()}
 
     def align_monolingual_embeddings(self, languages: str, source: bool):
