@@ -436,13 +436,14 @@ class Sentences:
                                                       for name, function in vector_based.FEATURES.items()
                                                       if name in features_dict['vector_based'])
 
-    def extraction(self, data: pd.DataFrame, evaluation=False):
+    def extraction(self, data: pd.DataFrame, evaluation=False, drop_prepared=True):
         """
         Actual extraction of features on the given dataset
         :param data: Dataset to extract features for
         :param evaluation: If True, the dataset with the extracted features is passed as a return value and thus,
         this function can be used from outside for a given dataset. I.e., can then be used for evaluating the ranking
         of sentences
+        :param drop_prepared: If true, drop columns with prepared features
         :return: Dataset with all extracted features, only if evaluation == True
         """
         for name, function in self.features_dict['text_based'].items():
@@ -450,8 +451,10 @@ class Sentences:
             data[name] = function[0](data['src_{}'.format(function[1])],
                                      data['trg_{}'.format(function[1])],
                                      self.single_source)
-            # Optional: Drop individual columns with this feature
-            data.drop(columns=['src_{}'.format(function[1]), 'trg_{}'.format(function[1])], inplace=True)
+
+        if drop_prepared:
+            data.drop(columns=['src_{}'.format(feature) for feature in self.prepared_features]
+                      + ['trg_{}'.format(feature) for feature in self.prepared_features], inplace=True)
 
         for name, function in self.features_dict['vector_based'].items():
             print('Started {}'.format(name))
@@ -461,7 +464,7 @@ class Sentences:
         if evaluation:
             return data
 
-    def extract_features(self, features_dict, data='all'):
+    def extract_features(self, features_dict, data='all', drop_prepared=True):
         """
         Sets self.features_dict to the given dictionary of features, having 'text_based' and 'vectorbased' as keys,
         and triggers feature extraction based on a given list of features (both text_based and vector_based)
@@ -471,6 +474,7 @@ class Sentences:
         If 'train', features are extracted on self.train_data only.
         If 'test', features are extracted on self.test_data only.
         else, features are extracted on self.data.
+        :param drop_prepared: If true, drop columns with prepared features
         :return: If data == 'train_test, return self.train_data and self.test_data.
         If data == 'train', return self.train_data only.
         If data == 'test', return self.test_data only.
@@ -492,16 +496,16 @@ class Sentences:
 
         if data == 'train_test':
             for data in [self.train_data, self.test_collection]:
-                self.extraction(data=data)
+                self.extraction(data=data, drop_prepared=drop_prepared)
             return self.train_data, self.test_collection
         elif data == 'train':
-            self.extraction(data=self.train_data)
+            self.extraction(data=self.train_data, drop_prepared=drop_prepared)
             return self.train_data
         elif data == 'test':
-            self.extraction(data=self.test_collection)
+            self.extraction(data=self.test_collection, drop_prepared=drop_prepared)
             return self.test_collection
         else:
-            self.extraction(data=self.data)
+            self.extraction(data=self.data, drop_prepared=drop_prepared)
             return self.data
 
 
