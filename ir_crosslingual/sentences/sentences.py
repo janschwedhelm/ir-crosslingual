@@ -267,7 +267,7 @@ class Sentences:
         return pd.Series(X.tolist())
 
     def load_data(self, src_sentences=None, trg_sentences=None, single_source: bool = False, n_max: int = 5000,
-                  to_lower = True, remove_stopwords: bool = True, remove_punctuation: bool = False,
+                  to_lower: bool = True, remove_stopwords: bool = True, remove_punctuation: bool = False,
                   agg_method: str = 'average', features=None, dim_red=None, align=False):
         """
         :param src_sentences: Single source sentence in string format.
@@ -285,6 +285,8 @@ class Sentences:
         :param agg_method: Aggregation method for transforming list of word vectors into sentence vectors
         :param features: List of feature names to prepare.
         If features = 'all', all features specified in text_based.py are prepared
+        :param dim_red:
+        :param align:
         :return: self.data -> DataFrame that contains each source and target sentence in raw,
         preprocessed and embedded form and, if specified so, alongside the prepared features for each sentence
         Return value not necessary -> self.data can also be accessed directly on the instance of this class
@@ -455,7 +457,7 @@ class Sentences:
             print('Started {}'.format(name))
             data[name] = data.apply(lambda row: function[0](row['src_{}'.format(function[1])],
                                                             row['trg_{}'.format(function[1])],
-                                                            self.single_source)[0][0], axis=1)
+                                                            self.single_source), axis=1)
         if evaluation:
             return data
 
