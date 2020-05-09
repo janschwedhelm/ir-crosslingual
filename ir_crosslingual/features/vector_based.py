@@ -103,5 +103,5 @@ def gas(src_sen: list, trg_sen: list):
 # alongside the corresponding function that needs to be executed for the given feature
 # Structure: {'feature_name': [function to be called, column on which the function needs to be performed]}
 FEATURES = {
-    'cosine_similarity': [cos_sim, 'embedding']
+    'cosine_similarity': [cos_sim, 'embedding_aligned', 'embedding']
 }

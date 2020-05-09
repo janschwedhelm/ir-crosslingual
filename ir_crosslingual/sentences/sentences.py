@@ -56,6 +56,8 @@ class Sentences:
         self.train_data = pd.DataFrame()
         self.test_collection = pd.DataFrame()
 
+        self.dim_emb = 300
+
         # Sentences.all_language_pairs['{}-{}'.format(self.src_lang, self.trg_lang)] = self
 
     def get_word_embeddings(self, source: bool = True):
@@ -117,13 +119,6 @@ class Sentences:
         tf_idf = [{k: v * idf[k] for k, v in dic.items()} for dic in tf]
         return tf_idf
 
-    def transform_src_embedding_space(self):
-        """
-        Transforms source sentence embeddings to shared embedding space
-        """
-        self.sentence_embeddings[self.src_lang] = self.sentence_embeddings[self.src_lang] @ self.projection_matrix
-        print('Embedding space of source language transformed according to projection matrix')
-
     def delete_invalid_sentences(self):
         """
         Delete sentences of invalid indices in all relevant variables
@@ -135,7 +130,7 @@ class Sentences:
                 self.sentence_embeddings[language] = np.delete(self.sentence_embeddings[language], idx, axis=0)
                 del self.words_found[language][idx]
 
-    def transform_into_sentence_vectors(self, align=False):
+    def transform_into_sentence_vectors(self):
         """
         Transform preprocessed sentences into sentence vectors.
         Transformed sentence embeddings are then stored in self.sentence_embeddings[src_lang] and
@@ -181,8 +176,6 @@ class Sentences:
                         self.sentence_embeddings[language].append(np.zeros(300))
             self.words_found[language] = words_found
         self.delete_invalid_sentences()
-        if align:
-            self.transform_src_embedding_space()
 
     def prepare_features(self, features):
         """
@@ -216,6 +209,7 @@ class Sentences:
     def reduce_dim(self, data, new_dim, use_ppa=True, threshold=8):
         # 1. PPA #1
         # PCA to get Top Components
+        self.dim_emb = new_dim
         def ppa(data, N, D):
             pca = PCA(n_components=N)
             data = data - np.mean(data)
@@ -250,7 +244,7 @@ class Sentences:
 
     def load_data(self, src_sentences=None, trg_sentences=None, single_source: bool = False, n_max: int = 5000,
                   to_lower = True, remove_stopwords: bool = True, remove_punctuation: bool = False,
-                  agg_method: str = 'average', features=None, dim_red=None, align=False):
+                  agg_method: str = 'average', features=None):
         """
         :param src_sentences: Single source sentence in string format.
         If None, Europarl sentences for the source language are loaded
@@ -290,18 +284,12 @@ class Sentences:
         print('Source sentences loaded')
         self.preprocess_sentences()
         print('Sentences preprocessed')
-        if align:
-            self.transform_into_sentence_vectors(align=True)
-        else:
-            self.transform_into_sentence_vectors(align=False)
-        self.data['src_embedding'] = list(self.sentence_embeddings[self.src_lang])
-        self.data['trg_embedding'] = list(self.sentence_embeddings[self.trg_lang])
-        if dim_red:
-            self.data[['src_embedding_{}'.format(i) for i in range(dim_red)]] = pd.DataFrame(
-                self.reduce_dim(self.data['src_embedding'], dim_red).tolist())
-            self.data[['trg_embedding_{}'.format(i) for i in range(dim_red)]] = pd.DataFrame(
-                self.reduce_dim(self.data['trg_embedding'], dim_red).tolist())
+        self.transform_into_sentence_vectors()
         print('Sentences transformed')
+        self.data['src_embedding'] = list(self.sentence_embeddings[self.src_lang])
+        self.data['src_embedding_aligned'] = list(self.sentence_embeddings[self.src_lang] @ self.projection_matrix)
+        print('Embedding space of source language transformed according to projection matrix')
+        self.data['trg_embedding'] = list(self.sentence_embeddings[self.trg_lang])
         if len(self.sentences_preprocessed[self.src_lang]) == 0:
             print('No valid source sentence left after preprocessing steps')
             return -1
@@ -321,10 +309,13 @@ class Sentences:
 
         df_train = df[:n_train]
 
-        self.src_prepared_features = ['src_{}'.format(feature) for feature in ['sentence', 'preprocessed', 'embedding']] \
+        self.src_prepared_features = ['src_{}'.format(feature) for feature in ['sentence', 'preprocessed', 'embedding',
+                                                                               'embedding_aligned']] \
                                      + ['src_{}'.format(feature) for feature in self.prepared_features]
+                                     # + ['src_embedding_{}'.format(i) for i in range(self.dim_emb)]
         self.trg_prepared_features = ['trg_{}'.format(feature) for feature in ['sentence', 'preprocessed', 'embedding']] \
                                      + ['trg_{}'.format(feature) for feature in self.prepared_features]
+                                     # + ['trg_embedding_{}'.format(i) for i in range(self.dim_emb)]
 
         n_pos = math.ceil(n_train * frac_pos)
         df_pos = df_train[:n_pos]
@@ -342,7 +333,8 @@ class Sentences:
     def create_test_collection(self, n_queries: int, n_docs: int):
         df_test = self.data[-n_docs:]
 
-        self.src_prepared_features = ['src_{}'.format(feature) for feature in ['sentence', 'preprocessed', 'embedding']] \
+        self.src_prepared_features = ['src_{}'.format(feature) for feature in ['sentence', 'preprocessed', 'embedding',
+                                                                               'embedding_aligned']] \
                                      + ['src_{}'.format(feature) for feature in self.prepared_features]
         self.trg_prepared_features = ['trg_{}'.format(feature) for feature in ['sentence', 'preprocessed', 'embedding']] \
                                      + ['trg_{}'.format(feature) for feature in self.prepared_features]
@@ -361,44 +353,6 @@ class Sentences:
                                   inplace=True)
 
         return self.test_collection
-
-    # # TODO: Adapt function to have less source sentences than target sentences in the test data set
-    # def create_datasets(self, n_train: int = 4000, n_test: int = 1000, frac_pos: float = 0.5):
-    #     """
-    #     Create train and test dataset based on given number of training and test instances
-    #     and a given fraction of positive samples in the training and test dataset
-    #     :param n_train: Number of instances in the training dataset
-    #     :param n_test: Number of instances in the test dataset
-    #     :param frac_pos: Fraction of positive samples in the training and test dataset
-    #     :return: self.train_data, self.test_data -> DataFrames containing training and test datasets.
-    #     Return value not necessary
-    #     -> self.train_data and self.test_data can also be accessed directly on the instance of this class
-    #     """
-    #     df = self.data
-    #
-    #     df_train = df[:n_train]
-    #     df_test = df[-n_test:]
-    #
-    #     self.src_prepared_features = ['src_{}'.format(feature) for feature in ['sentence', 'preprocessed', 'embedding']] \
-    #                                  + ['src_{}'.format(feature) for feature in self.prepared_features]
-    #     self.trg_prepared_features = ['trg_{}'.format(feature) for feature in ['sentence', 'preprocessed', 'embedding']]\
-    #                                  + ['trg_{}'.format(feature) for feature in self.prepared_features]
-    #
-    #     res_df = []
-    #
-    #     for i, data in enumerate([(n_train, df_train), (n_test, df_test)]):
-    #         n_pos = math.ceil(data[0] * frac_pos)
-    #         df_pos = data[1][:n_pos]
-    #         df_pos.loc[:, 'translation'] = 1
-    #         df_neg = data[1][self.src_prepared_features][n_pos:data[0]]
-    #         neg_indices = [np.random.choice(data[1].drop(index=i, axis=0).index, 1)[0] for i in df_neg.index]
-    #         for feature in self.trg_prepared_features:
-    #             df_neg[feature] = list(data[1][feature].loc[neg_indices])
-    #         df_neg.loc[:, 'translation'] = 0
-    #         res_df.append(df_pos.append(df_neg, ignore_index=True))
-    #
-    #     self.train_data, self.test_data = tuple(res_df)
-    #     return self.train_data, self.test_data
 
     def set_features_dict(self, features_dict):
         """
@@ -436,8 +390,22 @@ class Sentences:
         for name, function in self.features_dict['vector_based'].items():
             print('Started {}'.format(name))
             data[name] = data.apply(lambda row: function[0](row['src_{}'.format(function[1])],
-                                                            row['trg_{}'.format(function[1])],
+                                                            row['trg_{}'.format(function[2])],
                                                             self.single_source)[0][0], axis=1)
+
+        if int(len(self.features_dict['vector_elements'])/2) == 300:
+            print('Started extracting vector elements')
+            self.dim_emb = 300
+            for prefix in ['src', 'trg']:
+                data[['{}_embedding_{}'.format(prefix, i) for i in range(self.dim_emb)]] \
+                    = pd.DataFrame(self.data['{}_embedding'.format(prefix)].tolist())
+        elif self.features_dict['vector_elements']:
+            print('Started extracting vector elements')
+            self.dim_emb = int(len(self.features_dict['vector_elements'])/2)
+            for prefix in ['src', 'trg']:
+                data[['{}_embedding_{}'.format(prefix, i) for i in range(self.dim_emb)]] \
+                    = pd.DataFrame(self.reduce_dim(self.data['{}_embedding'.format(prefix)], self.dim_emb).tolist())
+
         if evaluation:
             return data
 
@@ -466,9 +434,11 @@ class Sentences:
             self.features_dict['text_based'] = dict((name, function)
                                                     for name, function in text_based.FEATURES.items()
                                                     if name in features_dict['text_based'])
+
             self.features_dict['vector_based'] = dict((name, function)
                                                       for name, function in vector_based.FEATURES.items()
                                                       if name in features_dict['vector_based'])
+            self.features_dict['vector_elements'] = features_dict['vector_elements']
 
         if data == 'train_test':
             for data in [self.train_data, self.test_collection]:
