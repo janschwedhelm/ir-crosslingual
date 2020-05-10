@@ -13,15 +13,15 @@ POS_TAGS = {'noun': 'NN NNS NNP NNPS'.split(),
 
 
 # Preparation of features
-def occ_punctuation(sen: list, punctuation: str):
+def occ_punctuation(sentence: list, punctuation: str):
     """
     Checks whether a given punctuation mark occurs in a given sentence
-    :param sen: List of sentence tokens in which to search for the given punctuation marks
+    :param sentence: List of sentence tokens in which to search for the given punctuation marks
     :param punctuation: Punctuation mark to search for in sen
     :return: True, if the sentence contains the punctuation mark.
     False, if it doesn't
     """
-    return punctuation in sen
+    return punctuation in sentence
 
 
 def count_tokens(sentence: list, punctuation=True):
@@ -39,10 +39,10 @@ def count_tokens(sentence: list, punctuation=True):
         return -1
 
 
-def count_nltk_tags(sen: list, word_group: str = 'noun'):
+def count_nltk_tags(sentence: list, word_group: str = 'noun'):
     """
     Counts the absolute number of a given word group in a list of sentences
-    :param sen: List of sentence tokens in which to count the occurrence of the given word group
+    :param sentence: List of sentence tokens in which to count the occurrence of the given word group
     :param word_group: Word group to search for in sen
     :return: Absolute number of the occurrence of the word group
     """
@@ -52,8 +52,24 @@ def count_nltk_tags(sen: list, word_group: str = 'noun'):
     if word_group not in POS_TAGS:
         raise ValueError('POS-TAG must be one of {}.'.format(POS_TAGS))
     pos_tags = POS_TAGS[word_group]
-    _, tags = zip(*nltk.pos_tag(sen))
-    return abs(sum(value for key, value in dict(Counter(tags)).items() if key in pos_tags))
+    try:
+        _, tags = zip(*nltk.pos_tag(sentence))
+        return abs(sum(value for key, value in dict(Counter(tags)).items() if key in pos_tags))
+    except ValueError:
+        return 0
+
+
+def translate_words(sentence: list, seed_dict: dict):
+    """
+    Create list with all possible translated words for the given sentence
+    :param sentence: List of sentence tokens to translate (list of lists)
+    :param seed_dict: Seed dictionary to use for translation
+    :return: List of lists with translated words
+    """
+    def flatten(sentence_list):
+        return [[item for sublist in sentence_words for item in sublist]
+                                     for sentence_words in sentence_list]
+    return flatten([[seed_dict[word] for word in src if word in seed_dict.keys()] for src in sentence])
 
 
 # Extraction of features
@@ -124,6 +140,24 @@ def equal_occurrence(src_sen, trg_sen, single_source):
         return [2 if src_sen[i] == trg_sen[i] == 1 else int(src_sen[i] == trg_sen[i]) for i in range(len(src_sen))]
 
 
+def equal_words_ratio(src_words, trg_words, src_translated, trg_translated):
+    """
+    Compute jaccard similarity between a source and a target sentence
+    :param src_words: List of sentence tokens in the source language
+    :param trg_words: List of sentence tokens in the target language
+    :param src_translated: List of translated source words in the target language
+    :param trg_translated: List of translated target words in the source language
+    :return:
+    """
+    try:
+        return mean([
+            len(set(src_words).intersection(set(trg_translated))) / len(set(src_words)),
+            len(set(trg_words).intersection(set(src_translated))) / len(set(trg_words))
+        ])
+    except ZeroDivisionError:
+        return 0
+
+
 # Dictionary of prepared text_based features that can be extracted on a single sentence
 # alongside the corresponding function that needs to be executed for te given feature
 # Structure:
@@ -134,7 +168,8 @@ PREPARED_FEATURES = {
     'num_words': [count_tokens, 'preprocessed', {'punctuation': False}],
     'num_punctuation': [count_tokens, 'preprocessed', {'punctuation': True}],
     'occ_question_mark': [occ_punctuation, 'preprocessed', {'punctuation': '?'}],
-    'occ_exclamation_mark': [occ_punctuation, 'preprocessed', {'punctuation': '!'}]
+    'occ_exclamation_mark': [occ_punctuation, 'preprocessed', {'punctuation': '!'}],
+    'translated_words': [translate_words, 'words']
 }
 
 for word_group in POS_TAGS:
@@ -173,17 +208,14 @@ FEATURES = {
     'norm_diff_num_adverb': [norm_difference, 'num_adverb'],
     'norm_diff_num_adjective': [norm_difference, 'num_adjective'],
     'norm_diff_num_wh': [norm_difference, 'num_wh'],
-    'norm_diff_num_pronoun': [norm_difference, 'num_pronoun']
+    'norm_diff_num_pronoun': [norm_difference, 'num_pronoun'],
+
+    'norm_diff_translated_words': [equal_words_ratio, ['words', 'translated_words']]
 }
 
 if __name__ == '__main__':
     """
     Test section
     """
-    # s = 'i would therefore once more ask you to ensure that we get a dutch channel as well .'.split()
-    # t = 'deshalb möchte ich sie nochmals ersuchen , dafür sorge zu tragen , ' \
-        # 'daß auch ein niederländischer sender eingespeist wird .'.split()
-    # print(equal_occurrence_punctuation(s, t, '?'))
-    # a = count_tokens('', True)
     b = count_tokens('deshalb möchte ich sie nochmals ersuchen , dafür sorge zu tragen'.split(), punctuation=False)
     print(b)
