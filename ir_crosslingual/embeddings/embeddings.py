@@ -13,6 +13,8 @@ class WordEmbeddings:
     seed_words = dict()
     seed_ids = dict()
 
+    seed_dicts = dict()
+
     N_MAX = 50000 # Having n_max as a class attribute means that for each language
     # we always load the same number of most frequent words.
     # Alternatively, this could also be passed to load_embeddings as a parameter
@@ -129,6 +131,14 @@ class WordEmbeddings:
                 # return index_pairs, word_pairs
                 cls.seed_words[languages] = word_pairs
                 cls.seed_ids[languages] = index_pairs
+
+                # Create seed dictionary from cls.seed_words
+                cls.seed_dicts[languages] = dict()
+                for s in cls.seed_words[languages]:
+                    try:
+                        cls.seed_dicts[languages][s[0]].append(s[1])
+                    except KeyError:
+                        cls.seed_dicts[languages][s[0]] = [s[1]]
 
         elif isinstance(expert_dict, dict):
             for s_word, t_word in expert_dict.items():
