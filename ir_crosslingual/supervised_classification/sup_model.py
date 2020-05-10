@@ -78,11 +78,13 @@ class SupModel:
 
         return model, prepared_features, features
 
-    def evaluate_boolean(self, model, sentences: Sentences):
+    def evaluate_boolean(self, model, sentences: Sentences, features=None):
         data = sentences.test_collection.copy()
-        features_dict = sentences.features_dict
+        if features is None:
+            features_dict = sentences.features_dict
+            features = [feature for values in features_dict.values() for feature in values]
 
-        preds = model.predict(data[[feature for values in features_dict.values() for feature in values]])
+        preds = model.predict(data[features])
 
         self.accuracy = accuracy_score(data['translation'], preds)
         self.precision = precision_score(data['translation'], preds)
@@ -92,12 +94,13 @@ class SupModel:
         return self
 
     @staticmethod
-    def compute_map(model, sentences: Sentences):
+    def compute_map(model, sentences: Sentences, features=None):
         data = sentences.test_collection.copy()
-        features_dict = sentences.features_dict
+        if features is None:
+            features_dict = sentences.features_dict
+            features = [feature for values in features_dict.values() for feature in values]
 
-        pred_probas = model.predict_proba(data[[feature for values in features_dict.values()
-                                                for feature in values]])[:, 1]
+        pred_probas = model.predict_proba(data[features])[:, 1]
 
         data['trans_proba'] = pred_probas
 
