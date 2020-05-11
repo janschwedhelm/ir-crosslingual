@@ -165,11 +165,12 @@ def equal_words_ratio(src_words, trg_words, src_translated, trg_translated):
 # column on which the function needs to be performed
 # {'argument_name_to_pass': 'argument_value_to_pass'}]}
 PREPARED_FEATURES = {
+    'translated_words': [translate_words, 'words'],
+
     'num_words': [count_tokens, 'preprocessed', {'punctuation': False}],
     'num_punctuation': [count_tokens, 'preprocessed', {'punctuation': True}],
     'occ_question_mark': [occ_punctuation, 'preprocessed', {'punctuation': '?'}],
-    'occ_exclamation_mark': [occ_punctuation, 'preprocessed', {'punctuation': '!'}],
-    'translated_words': [translate_words, 'words']
+    'occ_exclamation_mark': [occ_punctuation, 'preprocessed', {'punctuation': '!'}]
 }
 
 for word_group in POS_TAGS:
@@ -181,6 +182,8 @@ for word_group in POS_TAGS:
 # Structure: {'feature_name': [function to be called, column on which the function needs to be performed
 # which has to be extended by 'src' and 'trg' for the actual dataframe]}
 FEATURES = {
+    'norm_diff_translated_words': [equal_words_ratio, ['words', 'translated_words']],
+
     'diff_num_words': [abs_difference, 'num_words'],
     'diff_num_punctuation': [abs_difference, 'num_punctuation'],
     'diff_occ_question_mark': [equal_occurrence, 'occ_question_mark'],
@@ -208,9 +211,7 @@ FEATURES = {
     'norm_diff_num_adverb': [norm_difference, 'num_adverb'],
     'norm_diff_num_adjective': [norm_difference, 'num_adjective'],
     'norm_diff_num_wh': [norm_difference, 'num_wh'],
-    'norm_diff_num_pronoun': [norm_difference, 'num_pronoun'],
-
-    'norm_diff_translated_words': [equal_words_ratio, ['words', 'translated_words']]
+    'norm_diff_num_pronoun': [norm_difference, 'num_pronoun']
 }
 
 if __name__ == '__main__':
