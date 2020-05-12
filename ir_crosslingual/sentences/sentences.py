@@ -80,8 +80,8 @@ class Sentences:
         elif file_format == 'csv':
             sens.train_data = pd.read_csv(train_data)
             sens.test_collection = pd.read_csv(test_collection)
-        sens.prepared_features = [feature for feature in list(sens.train_data.columns)
-                                  if feature in list(text_based.PREPARED_FEATURES.keys())]
+        sens.prepared_features = set([feature[4:] for feature in list(sens.train_data.columns)
+                                  if feature[4:] in list(text_based.PREPARED_FEATURES.keys())])
         sens.features_dict['text_based'] = [feature for feature in list(sens.train_data.columns)
                                   if feature in list(text_based.FEATURES.keys())]
         sens.features_dict['vector_based'] = [feature for feature in list(sens.train_data.columns)
