@@ -173,8 +173,8 @@ PREPARED_FEATURES = {
     'occ_exclamation_mark': [occ_punctuation, 'preprocessed', {'punctuation': '!'}]
 }
 
-for word_group in POS_TAGS:
-    PREPARED_FEATURES['num_{}'.format(word_group)] = [count_nltk_tags, 'preprocessed', {'word_group': word_group}]
+# for word_group in POS_TAGS:
+#     PREPARED_FEATURES['num_{}'.format(word_group)] = [count_nltk_tags, 'preprocessed', {'word_group': word_group}]
 
 
 # Dictionary of all text_based features that can be extracted on two sentences to compare
@@ -184,34 +184,34 @@ for word_group in POS_TAGS:
 FEATURES = {
     'norm_diff_translated_words': [equal_words_ratio, ['words', 'translated_words']],
 
-    'diff_num_words': [abs_difference, 'num_words'],
-    'diff_num_punctuation': [abs_difference, 'num_punctuation'],
-    'diff_occ_question_mark': [equal_occurrence, 'occ_question_mark'],
-    'diff_occ_exclamation_mark': [equal_occurrence, 'occ_exclamation_mark'],
-    'diff_num_noun': [abs_difference, 'num_noun'],
-    'diff_num_verb': [abs_difference, 'num_verb'],
-    'diff_num_adverb': [abs_difference, 'num_adverb'],
-    'diff_num_adjective': [abs_difference, 'num_adjective'],
-    'diff_num_wh': [abs_difference, 'num_wh'],
-    'diff_num_pronoun': [abs_difference, 'num_pronoun'],
+    'abs_diff_num_words': [abs_difference, 'num_words'],
+    'abs_diff_num_punctuation': [abs_difference, 'num_punctuation'],
+    'abs_diff_occ_question_mark': [equal_occurrence, 'occ_question_mark'],
+    'abs_diff_occ_exclamation_mark': [equal_occurrence, 'occ_exclamation_mark'],
+    # 'abs_diff_num_noun': [abs_difference, 'num_noun'],
+    # 'abs_diff_num_verb': [abs_difference, 'num_verb'],
+    # 'abs_diff_num_adverb': [abs_difference, 'num_adverb'],
+    # 'abs_diff_num_adjective': [abs_difference, 'num_adjective'],
+    # 'abs_diff_num_wh': [abs_difference, 'num_wh'],
+    # 'abs_diff_num_pronoun': [abs_difference, 'num_pronoun'],
 
     'rel_diff_num_words': [rel_difference, 'num_words'],
     'rel_diff_num_punctuation': [rel_difference, 'num_punctuation'],
-    'rel_diff_num_noun': [rel_difference, 'num_noun'],
-    'rel_diff_num_verb': [rel_difference, 'num_verb'],
-    'rel_diff_num_adverb': [rel_difference, 'num_adverb'],
-    'rel_diff_num_adjective': [rel_difference, 'num_adjective'],
-    'rel_diff_num_wh': [rel_difference, 'num_wh'],
-    'rel_diff_num_pronoun': [rel_difference, 'num_pronoun'],
+    # 'rel_diff_num_noun': [rel_difference, 'num_noun'],
+    # 'rel_diff_num_verb': [rel_difference, 'num_verb'],
+    # 'rel_diff_num_adverb': [rel_difference, 'num_adverb'],
+    # 'rel_diff_num_adjective': [rel_difference, 'num_adjective'],
+    # 'rel_diff_num_wh': [rel_difference, 'num_wh'],
+    # 'rel_diff_num_pronoun': [rel_difference, 'num_pronoun'],
 
     'norm_diff_num_words': [norm_difference, 'num_words'],
-    'norm_diff_num_punctuation': [norm_difference, 'num_punctuation'],
-    'norm_diff_num_noun': [norm_difference, 'num_noun'],
-    'norm_diff_num_verb': [norm_difference, 'num_verb'],
-    'norm_diff_num_adverb': [norm_difference, 'num_adverb'],
-    'norm_diff_num_adjective': [norm_difference, 'num_adjective'],
-    'norm_diff_num_wh': [norm_difference, 'num_wh'],
-    'norm_diff_num_pronoun': [norm_difference, 'num_pronoun']
+    'norm_diff_num_punctuation': [norm_difference, 'num_punctuation']
+    # 'norm_diff_num_noun': [norm_difference, 'num_noun'],
+    # 'norm_diff_num_verb': [norm_difference, 'num_verb'],
+    # 'norm_diff_num_adverb': [norm_difference, 'num_adverb'],
+    # 'norm_diff_num_adjective': [norm_difference, 'num_adjective'],
+    # 'norm_diff_num_wh': [norm_difference, 'num_wh'],
+    # 'norm_diff_num_pronoun': [norm_difference, 'num_pronoun']
 }
 
 if __name__ == '__main__':
