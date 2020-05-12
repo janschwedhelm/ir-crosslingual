@@ -86,7 +86,7 @@ class Sentences:
                                   if feature in list(text_based.FEATURES.keys())]
         sens.features_dict['vector_based'] = [feature for feature in list(sens.train_data.columns)
                                             if feature in list(vector_based.FEATURES.keys())]
-        return sens, sens.train_data, sens.test_collection, \
+        return sens, sens.train_data.copy(), sens.test_collection.copy(), \
                [feature for values in sens.features_dict.values() for feature in values]
 
     def get_word_embeddings(self, source: bool = True):
@@ -351,7 +351,7 @@ class Sentences:
         print('---- DONE: Sentences preprocessed')
         self.vectorizer = self.fit_tfidf_vectorizer(vectorizer) if isinstance(vectorizer, int) else vectorizer
         self.transform_into_sentence_vectors()
-        print('---- INFO: Sentences transformed')
+        print('---- DONE: Sentences transformed')
         self.data['src_embedding'] = list(self.sentence_embeddings[self.src_lang])
         self.data['src_embedding_aligned'] = list(self.sentence_embeddings[self.src_lang] @ self.projection_matrix)
         print('---- INFO: Embedding space of source language transformed according to projection matrix')
@@ -374,7 +374,10 @@ class Sentences:
         print('---- DONE: Target words extracted')
         if features is not None:
             self.prepare_features(features=features)
-        print('---- DONE: All data loaded')
+        print('---- DONE: All features prepared')
+        self.data.drop_duplicates(['src_sentence', 'trg_sentence'], inplace=True)
+        print('---- DONE: Dropped duplicates and created full dataset')
+        print(f'---- INFO: Length of dataset after preprocessing and duplicate handling: {len(self.data)}')
         return self.data
 
     def build_separate_prepared_features_list(self):
@@ -382,16 +385,10 @@ class Sentences:
                                       for feature in
                                       ['sentence', 'preprocessed', 'embedding', 'embedding_aligned', 'words']] \
                                      + ['src_{}'.format(feature) for feature in self.prepared_features]
-        '''if self.dim_red is not None:
-            self.src_prepared_features = self.src_prepared_features \
-                                         + ['src_embedding_{}'.format(i) for i in range(self.dim_red)]'''
 
         self.trg_prepared_features = ['trg_{}'.format(feature)
                                       for feature in ['sentence', 'preprocessed', 'embedding', 'words']] \
                                      + ['trg_{}'.format(feature) for feature in self.prepared_features]
-        '''if self.dim_red is not None:
-            self.trg_prepared_features = self.trg_prepared_features \
-                                         + ['trg_embedding_{}'.format(i) for i in range(self.dim_red)]'''
 
     def create_train_set(self, n_train: int, frac_pos: float):
         df = self.data
@@ -402,7 +399,6 @@ class Sentences:
 
         n_pos = math.ceil(n_train * frac_pos)
         df_pos = df_train[:n_pos]
-        # df_pos.loc[:, 'translation'] = 1
         df_pos['translation'] = 1
         print('---- INFO: Translation dataframe created')
         df_neg = df_train[self.src_prepared_features][n_pos:n_train]
@@ -480,17 +476,27 @@ class Sentences:
         try:
             for name, function in self.features_dict['text_based'].items():
                 print(f'---- INFO: Started extraction of text-based feature {name}')
-                if name == 'norm_diff_translated_words':
+                if 'occ' in name:
+                    data[name] = function[0](data['src_{}'.format(function[1])],
+                                             data['trg_{}'.format(function[1])],
+                                             self.single_source)
+
+                elif 'translated' in name:
                     data[name] = data.apply(lambda row: function[0](row['src_{}'.format(function[1][0])],
                                                                     row['trg_{}'.format(function[1][0])],
                                                                     row['src_{}'.format(function[1][1])],
                                                                     row['trg_{}'.format(function[1][1])]
                                                                     ), axis=1)
-                else:
+                elif name[:3] == 'abs':
+                    data[name] = abs(data[f'src_{function[1]}'] - data[f'trg_{function[1]}'])
+                elif name[:3] == 'rel':
+                    data[name] = data[f'src_{function[1]}'] - data[f'trg_{function[1]}']
+                elif name[:4] == 'norm':
                     data[name] = function[0](data['src_{}'.format(function[1])],
                                              data['trg_{}'.format(function[1])],
                                              self.single_source)
-        except KeyError:
+        except KeyError as key:
+            print(f'---- ERROR: Key error occurred in text-based features for key {key}')
             pass
 
         if drop_prepared:
@@ -550,6 +556,7 @@ class Sentences:
                                                     for name, function in text_based.FEATURES.items()
                                                     if name in features_dict['text_based'])
         except KeyError:
+            print('---- INFO: No text-based features specified')
             pass
 
         try:
@@ -557,11 +564,13 @@ class Sentences:
                                                       for name, function in vector_based.FEATURES.items()
                                                       if name in features_dict['vector_based'])
         except KeyError:
+            print('---- INFO: No vector-based features specified')
             pass
 
         try:
             self.features_dict['vector_elements'] = features_dict['vector_elements']
         except KeyError:
+            print('---- INFO: No vector elements as features specified')
             pass
 
         if data == 'train_test':
