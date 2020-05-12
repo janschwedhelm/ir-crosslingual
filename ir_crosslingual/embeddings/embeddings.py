@@ -55,14 +55,14 @@ class WordEmbeddings:
         """
         seed_dict = WordEmbeddings.get_seed_ids(src_lang=languages[:2], trg_lang=languages[-2:])
         self.aligned_subspace[languages[-2:] if source else languages[:2]] = self.embeddings[[tuples[not source] for tuples in seed_dict]]
-        print("Resulting subspace dimension: {}".format(self.aligned_subspace[languages[-2:] if source else languages[:2]].shape))
+        print("---- INFO: Resulting subspace dimension: {}".format(self.aligned_subspace[languages[-2:] if source else languages[:2]].shape))
 
     @classmethod
     def get_embeddings(cls, language: str):
         try:
             return cls.all_embeddings[language]
         except KeyError:
-            print('Embeddings for language {} do not exist yet.'.format(language))
+            print('---- ERROR: Embeddings for language {} do not exist yet.'.format(language))
             return -1
 
     @classmethod
@@ -71,7 +71,7 @@ class WordEmbeddings:
         try:
             return cls.projection_matrices[languages]
         except KeyError:
-            print('Projection matrix for language pair {} does not exist yet.'.format(languages))
+            print('---- ERROR: Projection matrix for language pair {} does not exist yet.'.format(languages))
             return -1
 
     @classmethod
@@ -80,7 +80,7 @@ class WordEmbeddings:
         try:
             return cls.seed_words[languages]
         except KeyError:
-            print('Seed words dictionary for language pair {} does not exist yet.'.format(languages))
+            print('---- ERROR: Seed words dictionary for language pair {} does not exist yet.'.format(languages))
             return -1
 
     @classmethod
@@ -89,7 +89,7 @@ class WordEmbeddings:
         try:
             return cls.seed_ids[languages]
         except KeyError:
-            print('Seed IDs dictionary for language pair {} does not exist yet.'.format(languages))
+            print('---- ERROR: Seed IDs dictionary for language pair {} does not exist yet.'.format(languages))
             return -1
 
     @classmethod
@@ -125,12 +125,13 @@ class WordEmbeddings:
                         misfit += 1
                         misfit_s += int(s_word not in source.word2id)
                         misfit_t += int(t_word not in target.word2id)
-                print('Found {} valid translation pairs in expert dictionary.\n'
-                      '{} other pairs contained at least one unknown word ({} in source language, {} in target language).'
+                print('---- INFO: Found {} valid translation pairs in expert dictionary.\n'
+                      '---- INFO: {} other pairs contained at least one unknown word ({} in source language, {} in target language).'
                       .format(len(word_pairs), misfit, misfit_s, misfit_t))
                 # return index_pairs, word_pairs
                 cls.seed_words[languages] = word_pairs
                 cls.seed_ids[languages] = index_pairs
+                print(f'---- DONE: Seed dictionary extracted for the languages: {languages}')
 
                 # Create seed dictionary from cls.seed_words
                 cls.seed_dicts[languages] = dict()
@@ -149,12 +150,13 @@ class WordEmbeddings:
                     misfit += 1
                     misfit_s += int(s_word not in source.word2id)
                     misfit_t += int(t_word not in target.word2id)
-            print('Found {} valid translation pairs.\n'
-                  '{} other pairs contained at least one unknown word ({} in source language, {} in target language).'
+            print('---- INFO:Found {} valid translation pairs.\n'
+                  '---- INFO: {} other pairs contained at least one unknown word ({} in source language, {} in target language).'
                   .format(len(word_pairs), misfit, misfit_s, misfit_t))
             # return index_pairs, word_pairs
             cls.seed_words[languages] = word_pairs
             cls.seed_ids[languages] = index_pairs
+            print(f'---- DONE: Seed dictionary extracted for the languages: {languages}')
 
         else:
             print(expert_dict)
@@ -178,7 +180,7 @@ class WordEmbeddings:
         """
         for s_lang, t_lang in zip([src_lang, trg_lang], [trg_lang, src_lang]):
             # TODO: Always check that languages are in list
-            print('Learn projection matrix for {}-{}'.format(s_lang, t_lang))
+            print('---- INFO: Learn projection matrix for {}-{}'.format(s_lang, t_lang))
             source = cls.get_embeddings(s_lang)
             target = cls.get_embeddings(t_lang)
             languages = '{}-{}'.format(s_lang, t_lang)
@@ -187,15 +189,17 @@ class WordEmbeddings:
                 WordEmbeddings.set_seed_dictionary(src_lang=s_lang, trg_lang=t_lang)
 
             if (source.embeddings is None) or (target.embeddings is None):
-                print('Monolingual word embeddings for source and target languages have to be loaded first.')
+                print('---- ERROR: Monolingual word embeddings for source and target languages have to be loaded first.')
                 return -1
 
             if method not in cls.LEARNING_METHODS:
-                raise ValueError("Method must be one of {}.".format(cls.LEARNING_METHODS))
+                raise ValueError("---- ERROR: Method must be one of {}.".format(cls.LEARNING_METHODS))
             if isinstance(source.embeddings, np.ndarray) and source.word2id is None:
-                raise TypeError("word2id dictionaries have to be specified if embeddings are given as numpy arrays.")
+                raise TypeError("---- ERROR: word2id dictionaries have to be specified if "
+                                "embeddings are given as numpy arrays.")
             if isinstance(target.embeddings, np.ndarray) and target.word2id is None:
-                raise TypeError("word2id dictionaries have to be specified if embeddings are given as numpy arrays.")
+                raise TypeError("---- ERROR: word2id dictionaries have to be specified if "
+                                "embeddings are given as numpy arrays.")
 
             # Align subspaces
             source.align_monolingual_embeddings(languages=languages, source=True)
@@ -205,6 +209,7 @@ class WordEmbeddings:
                 U, s, Vt = svd(np.transpose(source.aligned_subspace[t_lang]) @ target.aligned_subspace[s_lang])
                 W = U @ Vt
                 cls.projection_matrices[languages] = W
+            print(f'---- DONE: Projection matrix from {s_lang} to {t_lang}')
         return cls.projection_matrices['{}-{}'.format(src_lang, trg_lang)],\
             cls.projection_matrices['{}-{}'.format(trg_lang, src_lang)]
 
