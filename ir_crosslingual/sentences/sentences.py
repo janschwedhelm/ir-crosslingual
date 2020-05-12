@@ -414,8 +414,7 @@ class Sentences:
             df_neg[feature] = list(df_train[feature].loc[neg_indices])
             print(f'---- INFO: Feature column {feature} appended')
         print('---- INFO: All features appended')
-        # df_neg.loc[:, 'translation'] = 0
-        df_neg['translation'] = df_neg['src_sentence'] == df_neg['trg_sentence']
+        df_neg['translation'] = df_neg['trg_sentence'] == df_train.iloc[n_pos:n_train]['trg_sentence']
         print('---- INFO: Added non-translation indicator')
 
         self.train_data = df_pos.append(df_neg, ignore_index=True)
