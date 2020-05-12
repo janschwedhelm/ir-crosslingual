@@ -208,7 +208,7 @@ class Sentences:
                         tf_idf_scores = {word2id[k]: v for k, v in self.tf_idf(tokens, language=language).items()
                                          if k in word2id.keys()}
                         vec = np.zeros((1, 300))
-                        if (i % 1000) == 0:
+                        if (i % 10000) == 0:
                             print(f'---- INFO: Starting sentence vector aggregation for index {i}, language {language}')
                         for word_idx, tf_idf_score in tf_idf_scores.items():
                             vec += tf_idf_score * word_embeddings[word_idx]
