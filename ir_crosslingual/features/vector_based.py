@@ -24,10 +24,10 @@ def cos_sim(src_vec, trg_vec, single_source=False):
     (can be used when ranking target sentences for a single source sentence, e.g. in the WebApp)
     :return: Cosine similarity of the source and the target sentence embedding
     """
-    if single_source:
+    '''if single_source:
         return cosine_similarity(src_vec[0].reshape(1, -1), np.vstack(trg_vec))[0]
-    else:
-        return cosine_similarity(src_vec.reshape(1, -1), trg_vec.reshape(1, -1))[0][0]
+    else:'''
+    return cosine_similarity(src_vec.reshape(1, -1), trg_vec.reshape(1, -1))[0][0]
 
 
 # TODO: Old functions that need to adapted to new structure
