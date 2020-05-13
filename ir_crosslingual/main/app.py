@@ -61,9 +61,7 @@ def sup_predict():
             name = 'logReg_v0.2'
         elif request.form.get('rb_sup_model') == 'rb_mlp':
             print('Multilayer Perceptron chosen for evaluation')
-            name = 'mlp'
-            return render_template('result_l2r.html', prediction=-3.1, model=name.upper(),
-                                   src_sentence=src_sentence, src_language=src_language.capitalize())
+            name = 'mlp_base'
         elif request.form.get('rb_sup_model') == 'rb_lstm':
             print('LSTM chosen for evaluation')
             name = 'lstm'
@@ -133,9 +131,7 @@ def sup_rank():
             name = 'logReg_v0.2'
         elif request.form.get('rb_sup_model') == 'rb_mlp':
             print('Multilayer Perceptron chosen for evaluation')
-            name = 'mlp'
-            return render_template('result_l2r.html', prediction=-3.1, model=name.upper(),
-                                   src_sentence=src_sentence, src_language=src_language.capitalize())
+            name = 'mlp_base'
         elif request.form.get('rb_sup_model') == 'rb_lstm':
             print('LSTM chosen for evaluation')
             name = 'lstm'
@@ -164,9 +160,15 @@ def sup_rank():
     # top_sens = top_sens if k == 'all' else [top_sens[i] for i in range(k) if top_probs[i] >= 0.5]
     # top_probs = top_probs if k == 'all' else [top_probs[i] for i in range(k) if top_probs[i] >= 0.5]
 
-    return render_template('result_l2r.html', prediction=1, src_sentence=src_sentence,
-                           num_sentences=len(top_sens), top_sens=top_sens, top_probs=['%.2f' % (i * 100) for i in top_probs],
-                           src_language=src_language.capitalize(), trg_language=trg_language.capitalize())
+    if name == 'mlp_base':
+        return render_template('result_l2r.html', prediction=1, src_sentence=src_sentence, model=name,
+                               num_sentences=len(top_sens), top_sens=top_sens, top_probs=['%.4f' % (i) for i in top_probs],
+                               src_language=src_language.capitalize(), trg_language=trg_language.capitalize())
+    else:
+        return render_template('result_l2r.html', prediction=1, src_sentence=src_sentence, model=name,
+                               num_sentences=len(top_sens), top_sens=top_sens,
+                               top_probs=['%.2f' % (i * 100) for i in top_probs],
+                               src_language=src_language.capitalize(), trg_language=trg_language.capitalize())
 
 
 if __name__ == '__main__':
