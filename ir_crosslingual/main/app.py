@@ -59,6 +59,11 @@ def sup_predict():
         if request.form.get('rb_sup_model') == 'rb_log_reg':
             print('Logistic Regression chosen for evaluation')
             name = 'logReg_v0.2'
+        elif request.form.get('rb_sup_model') == 'rb_mlp':
+            print('Multilayer Perceptron chosen for evaluation')
+            name = 'mlp'
+            return render_template('result_l2r.html', prediction=-3.1, model=name.upper(),
+                                   src_sentence=src_sentence, src_language=src_language.capitalize())
         elif request.form.get('rb_sup_model') == 'rb_lstm':
             print('LSTM chosen for evaluation')
             name = 'lstm'
@@ -66,7 +71,7 @@ def sup_predict():
                                    src_sentence=src_sentence, src_language=src_language.capitalize(),
                                    trg_sentence=trg_sentence, trg_language=trg_language.capitalize())
 
-    model, prepared_features, features = sup_model.SupModel.load_model(name=name)
+    model, prepared_features, features_dict = sup_model.SupModel.load_model(name=name)
 
     source = embeddings.WordEmbeddings.get_embeddings(language=paths.languages_inversed[src_language])
     target = embeddings.WordEmbeddings.get_embeddings(language=paths.languages_inversed[trg_language])
@@ -83,9 +88,10 @@ def sup_predict():
     except ValueError:
         pass
 
-    data = sens.extract_features(features_dict=features, data='all')
-    prediction = model.predict(np.asarray(data[[feature for values in features.values()
-                                                for feature in values]]).reshape(1, -1))
+    data = sens.extract_features(features_dict=features_dict, data='all')
+
+    features = [feature for values in features_dict.values() for feature in values]
+    prediction = model.predict(data[features])
 
     return render_template('result_binary.html', prediction=prediction, src_sentence=src_sentence, trg_sentence=trg_sentence,
                            src_language=src_language.capitalize(), trg_language=trg_language.capitalize())
@@ -125,6 +131,11 @@ def sup_rank():
         if request.form.get('rb_sup_model') == 'rb_log_reg':
             print('Logistic Regression chosen for evaluation')
             name = 'logReg_v0.2'
+        elif request.form.get('rb_sup_model') == 'rb_mlp':
+            print('Multilayer Perceptron chosen for evaluation')
+            name = 'mlp'
+            return render_template('result_l2r.html', prediction=-3.1, model=name.upper(),
+                                   src_sentence=src_sentence, src_language=src_language.capitalize())
         elif request.form.get('rb_sup_model') == 'rb_lstm':
             print('LSTM chosen for evaluation')
             name = 'lstm'

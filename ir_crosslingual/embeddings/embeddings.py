@@ -209,7 +209,7 @@ class WordEmbeddings:
                 U, s, Vt = svd(np.transpose(source.aligned_subspace[t_lang]) @ target.aligned_subspace[s_lang])
                 W = U @ Vt
                 cls.projection_matrices[languages] = W
-            print(f'---- DONE: Projection matrix from {s_lang} to {t_lang}')
+            print(f'---- DONE: Projection matrix learned from {s_lang} to {t_lang}')
         return cls.projection_matrices['{}-{}'.format(src_lang, trg_lang)],\
             cls.projection_matrices['{}-{}'.format(trg_lang, src_lang)]
 

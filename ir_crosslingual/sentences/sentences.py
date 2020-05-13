@@ -34,7 +34,7 @@ class Sentences:
         self.sentence_embeddings = dict()  # Initialized in transform_into_sentence_vectors
         # self.id2sentence = dict()  # Initialized in transform_into_sentence_vectors
         self.words_found = dict()  # Initialized in transform_into_sentence_vectors
-        # self.words_found_embeddings = dict()  # Initialized in transform_into_sentence_vectors, needed for gas feature
+        self.words_found_embeddings = dict()  # Initialized in transform_into_sentence_vectors, needed for gas feature
         self.invalid_sentences = set()  # Initialized in transform_into_sentence_vectors
 
         # Default values for preprocessing settings and word embeddings
@@ -76,16 +76,38 @@ class Sentences:
 
         if file_format == 'pkl':
             sens.train_data = pd.read_pickle(train_data)
+            print(f'---- INFO: File loaded containing training data')
             sens.test_collection = pd.read_pickle(test_collection)
+            print(f'---- INFO: File loaded containing test collection')
         elif file_format == 'csv':
             sens.train_data = pd.read_csv(train_data)
             sens.test_collection = pd.read_csv(test_collection)
+
         sens.prepared_features = set([feature[4:] for feature in list(sens.train_data.columns)
-                                  if feature[4:] in list(text_based.PREPARED_FEATURES.keys())])
-        sens.features_dict['text_based'] = [feature for feature in list(sens.train_data.columns)
-                                  if feature in list(text_based.FEATURES.keys())]
-        sens.features_dict['vector_based'] = [feature for feature in list(sens.train_data.columns)
-                                            if feature in list(vector_based.FEATURES.keys())]
+                                      if feature[4:] in list(text_based.PREPARED_FEATURES.keys())])
+
+        try:
+            sens.features_dict['text_based'] = [feature for feature in list(sens.train_data.columns)
+                                                if feature in list(text_based.FEATURES.keys())]
+        except KeyError:
+            print(f'---- INFO: No text-based features have been extracted in this file')
+            pass
+
+        try:
+            sens.features_dict['vector_based'] = [feature for feature in list(sens.train_data.columns)
+                                                  if feature in list(vector_based.FEATURES.keys())]
+        except KeyError:
+            print(f'---- INFO: No vector-based features have been extracted in this file')
+            pass
+
+        try:
+            sens.features_dict['vector_elements'] = [f'src_embedding_{i}' for i in range(300)
+                                                  if f'src_embedding_{i}' in list(sens.train_data.columns)] + \
+                                                 [f'trg_embedding_{i}' for i in range(300)
+                                                  if f'trg_embedding_{i}' in list(sens.train_data.columns)]
+        except KeyError:
+            print(f'---- INFO: No vector elements as features have been extracted in this file')
+        print(f'---- DONE: All files loaded and features extracted')
         return sens, sens.train_data.copy(), sens.test_collection.copy(), \
                [feature for values in sens.features_dict.values() for feature in values]
 
@@ -174,6 +196,16 @@ class Sentences:
                 del self.sentences_preprocessed[language][idx]
                 self.sentence_embeddings[language] = np.delete(self.sentence_embeddings[language], idx, axis=0)
                 del self.words_found[language][idx]
+                del self.words_found_embeddings[language][idx]
+
+    def get_found_word_embeddings(self):
+        print(f'---- INFO: Shape of source word embeddings')
+        src_embeddings = self.word_embeddings[self.src_lang].embeddings @ self.projection_matrix
+        trg_embeddings = self.word_embeddings[self.trg_lang].embeddings.copy()
+        self.words_found_embeddings[self.src_lang] = [[src_embeddings[word] for word in sentence]
+                                                     for sentence in self.words_found[self.src_lang]]
+        self.words_found_embeddings[self.trg_lang] = [[trg_embeddings[word] for word in sentence]
+                                                      for sentence in self.words_found[self.trg_lang]]
 
     def transform_into_sentence_vectors(self):
         """
@@ -187,6 +219,7 @@ class Sentences:
             word2id = self.word_embeddings[language].word2id
 
             words_found = [[word2id[word] for word in sen if word in word2id.keys()] for sen in sentences]
+            # words_found_embeddings = [[word_embeddings[word] for word in sentence] for sentence in words_found]
 
             self.invalid_sentences.update({i for i in range(len(sentences))
                                            if len(words_found[i]) == 0})
@@ -208,7 +241,7 @@ class Sentences:
                         tf_idf_scores = {word2id[k]: v for k, v in self.tf_idf(tokens, language=language).items()
                                          if k in word2id.keys()}
                         vec = np.zeros((1, 300))
-                        if (i % 1000) == 0:
+                        if (i % 10000) == 0:
                             print(f'---- INFO: Starting sentence vector aggregation for index {i}, language {language}')
                         for word_idx, tf_idf_score in tf_idf_scores.items():
                             vec += tf_idf_score * word_embeddings[word_idx]
@@ -218,6 +251,8 @@ class Sentences:
                 self.sentence_embeddings[language] = np.vstack(self.sentence_embeddings[language])
 
             self.words_found[language] = words_found
+        self.get_found_word_embeddings()
+        print(f'---- INFO: Extracted word embeddings of found words')
         self.delete_invalid_sentences()
 
     def prepare_features(self, features):
@@ -379,6 +414,9 @@ class Sentences:
         self.data['trg_words'] = [[word for word in sen if word.isalpha()]
                                   for sen in self.sentences_preprocessed[self.trg_lang]]
         print('---- DONE: Target words extracted')
+        self.data['src_words_found_embedding'] = list(self.words_found_embeddings[self.src_lang])
+        self.data['trg_words_found_embedding'] = list(self.words_found_embeddings[self.trg_lang])
+        print(f'---- INFO: Embeddings of found words added as a column')
         if features is not None:
             self.prepare_features(features=features)
         print('---- DONE: All features prepared')
@@ -390,13 +428,13 @@ class Sentences:
     def build_separate_prepared_features_list(self):
         self.src_prepared_features = ['src_{}'.format(feature)
                                       for feature in
-                                      ['sentence', 'preprocessed', 'embedding', 'embedding_aligned', 'words']] \
+                                      ['sentence', 'preprocessed', 'embedding', 'embedding_aligned', 'words', 'words_found_embedding']] \
                                      + ['src_{}'.format(feature) for feature in self.prepared_features] \
                                      + ['src_embedding_{}'.format(i) for i in range(300)] \
                                      + ['src_embedding_pca_{}'.format(i) for i in range(self.dim_emb)]
 
         self.trg_prepared_features = ['trg_{}'.format(feature)
-                                      for feature in ['sentence', 'preprocessed', 'embedding', 'words']] \
+                                      for feature in ['sentence', 'preprocessed', 'embedding', 'words', 'words_found_embedding']] \
                                      + ['trg_{}'.format(feature) for feature in self.prepared_features] \
                                      + ['trg_embedding_{}'.format(i) for i in range(300)] \
                                      + ['trg_embedding_pca_{}'.format(i) for i in range(self.dim_emb)]

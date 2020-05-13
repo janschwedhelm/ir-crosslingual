@@ -19,14 +19,14 @@ class SupModel:
         self.f1 = None
 
     @staticmethod
-    def save_model(name: str, model, prepared_features: list, features: dict, info: str = None):
+    def save_model(name: str, model, prepared_features: list, features_dict: dict, info: str = None):
         """
         Save a pretrained model to file, alongside files containing the prepared and the actual features that have been
         used to train the model and an optional text file containing further information about the training process
         :param name: Name of the model that shall be stored. Will be the name of the folder containing all model files
         :param model: Pretrained model object to be saved
         :param prepared_features: List of features that have been prepared when training this model
-        :param features: Dictionary of text_based and vector_based features that have been prepared
+        :param features_dict: Dictionary of text_based and vector_based features that have been prepared
         when training this model
         :param info: Optional: Further information regarding the training process. E.g., number of training examples
         :return: -1 if a folder with the given name already exists
@@ -46,7 +46,7 @@ class SupModel:
 
         # Save dict of actual features
         with open('{}{}/features.json'.format(paths.model_path, name), 'w') as f:
-            json.dump(features, f)
+            json.dump(features_dict, f)
 
         # Save info if given
         if info is not None:
