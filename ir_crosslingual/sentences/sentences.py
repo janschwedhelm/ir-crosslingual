@@ -401,8 +401,8 @@ class Sentences:
         for prefix in ['src', 'trg']:
             self.data[['{}_embedding_pca_{}'.format(prefix, i) for i in range(dim_red)]] = pd.DataFrame(
                 self.reduce_dim(self.data['{}_embedding'.format(prefix)], dim_red, use_ppa=use_ppa).tolist())
-            self.data[['{}_embedding_{}'.format(prefix, i) for i in range(300)]] = pd.DataFrame(
-                self.data['{}_embedding'.format(prefix)].tolist())
+            #self.data[['{}_embedding_{}'.format(prefix, i) for i in range(300)]] = pd.DataFrame(
+            #    self.data['{}_embedding'.format(prefix)].tolist())
         print('---- DONE: Sentence embedding vector elements extracted')
         self.data['src_sentence'] = self.sentences[self.src_lang]
         self.data['trg_sentence'] = self.sentences[self.trg_lang]
@@ -430,13 +430,11 @@ class Sentences:
                                       for feature in
                                       ['sentence', 'preprocessed', 'embedding', 'embedding_aligned', 'words', 'words_found_embedding']] \
                                      + ['src_{}'.format(feature) for feature in self.prepared_features] \
-                                     + ['src_embedding_{}'.format(i) for i in range(300)] \
                                      + ['src_embedding_pca_{}'.format(i) for i in range(self.dim_emb)]
 
         self.trg_prepared_features = ['trg_{}'.format(feature)
                                       for feature in ['sentence', 'preprocessed', 'embedding', 'words', 'words_found_embedding']] \
                                      + ['trg_{}'.format(feature) for feature in self.prepared_features] \
-                                     + ['trg_embedding_{}'.format(i) for i in range(300)] \
                                      + ['trg_embedding_pca_{}'.format(i) for i in range(self.dim_emb)]
 
     def create_train_set(self, n_train: int, frac_pos: float):
