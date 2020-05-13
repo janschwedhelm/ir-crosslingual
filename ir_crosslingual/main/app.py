@@ -59,6 +59,11 @@ def sup_predict():
         if request.form.get('rb_sup_model') == 'rb_log_reg':
             print('Logistic Regression chosen for evaluation')
             name = 'logReg_v0.2'
+        elif request.form.get('rb_sup_model') == 'rb_mlp':
+            print('Multilayer Perceptron chosen for evaluation')
+            name = 'mlp'
+            return render_template('result_l2r.html', prediction=-3.1, model=name.upper(),
+                                   src_sentence=src_sentence, src_language=src_language.capitalize())
         elif request.form.get('rb_sup_model') == 'rb_lstm':
             print('LSTM chosen for evaluation')
             name = 'lstm'
@@ -126,6 +131,11 @@ def sup_rank():
         if request.form.get('rb_sup_model') == 'rb_log_reg':
             print('Logistic Regression chosen for evaluation')
             name = 'logReg_v0.2'
+        elif request.form.get('rb_sup_model') == 'rb_mlp':
+            print('Multilayer Perceptron chosen for evaluation')
+            name = 'mlp'
+            return render_template('result_l2r.html', prediction=-3.1, model=name.upper(),
+                                   src_sentence=src_sentence, src_language=src_language.capitalize())
         elif request.form.get('rb_sup_model') == 'rb_lstm':
             print('LSTM chosen for evaluation')
             name = 'lstm'
