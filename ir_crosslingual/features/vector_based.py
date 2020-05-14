@@ -5,6 +5,16 @@ from scipy.stats import wasserstein_distance
 
 
 # Updated functions
+def euclidean_dist(src_vec, trg_vec, single_source=False):
+    """
+    Computes euclidean distance between the embeddings of two supervised_classification
+    :param src_vec: Sentence embedding of the source sentence
+    :param trg_vec: Sentence embedding of the target sentence
+    :return: Euclidean distance of the source and the target sentence embedding
+    """
+    return distance.euclidean(src_vec, trg_vec)
+
+
 def cos_sim(src_vec, trg_vec, single_source=False):
     """
     Computes cosine similarity between the embeddings of two sentences
@@ -14,21 +24,13 @@ def cos_sim(src_vec, trg_vec, single_source=False):
     (can be used when ranking target sentences for a single source sentence, e.g. in the WebApp)
     :return: Cosine similarity of the source and the target sentence embedding
     """
-    if single_source:
+    '''if single_source:
         return cosine_similarity(src_vec[0].reshape(1, -1), np.vstack(trg_vec))[0]
-    else:
-        return cosine_similarity(src_vec.reshape(1, -1), trg_vec.reshape(1, -1))
+    else:'''
+    return cosine_similarity(src_vec.reshape(1, -1), trg_vec.reshape(1, -1))[0][0]
 
 
 # TODO: Old functions that need to adapted to new structure
-def euclidean_dist(src_vec, trg_vec):
-    """
-    Computes euclidean distance between the embeddings of two supervised_classification
-    :param src_vec: Sentence embedding of the source sentence
-    :param trg_vec: Sentence embedding of the target sentence
-    :return: Euclidean distance of the source and the target sentence embedding
-    """
-    return distance.euclidean(src_vec, trg_vec)
 
 
 def jenson_shannon_dist(src_vec, trg_vec):
@@ -103,5 +105,6 @@ def gas(src_sen: list, trg_sen: list):
 # alongside the corresponding function that needs to be executed for the given feature
 # Structure: {'feature_name': [function to be called, column on which the function needs to be performed]}
 FEATURES = {
-    'cosine_similarity': [cos_sim, 'embedding']
+    'euclidean_distance': [euclidean_dist, 'embedding_aligned', 'embedding'],
+    'cosine_similarity': [cos_sim, 'embedding_aligned', 'embedding']
 }

@@ -1,139 +1,145 @@
 {% extends 'bootstrap/base.html' %}
 
 {% block navbar %}
-<nav class="navbar navbar-inverse">
-    <div class="container-fluid">
-        <div class="navbar-header">
-            <button type="button" class="navbar-toggle collapsed" data-toggle="collapse"
-                    data-target="#bs-example-navbar-collapse-1" aria-expanded="false">
-                <span class="sr-only">Toggle navigation</span>
-                <span class="icon-bar"></span>
-                <span class="icon-bar"></span>
-                <span class="icon-bar"></span>
-            </button>
-            <a class="navbar-brand" href="{{ url_for('home') }}">Cross-Lingual Sentence Retrieval</a>
-        </div>
+    <nav class="navbar navbar-inverse">
+        <div class="container-fluid">
+            <div class="navbar-header">
+                <button type="button" class="navbar-toggle collapsed" data-toggle="collapse"
+                        data-target="#bs-example-navbar-collapse-1" aria-expanded="false">
+                    <span class="sr-only">Toggle navigation</span>
+                    <span class="icon-bar"></span>
+                    <span class="icon-bar"></span>
+                    <span class="icon-bar"></span>
+                </button>
+                <a class="navbar-brand" href="{{ url_for('home') }}">Cross-Lingual Sentence Retrieval</a>
+            </div>
 
-        <div class="collapse navbar-collapse" id="bs-example-navbar-collapse-1">
-            <ul class="nav navbar-nav" id="nav">
-                <li class="active">
-                    <a href="#" class="dropdown-toggle" data-toggle="dropdown" role="button" aria-haspopup="true"
-                       aria-expanded="false">Supervised<span class="caret"></span></a>
-                    <ul class="dropdown-menu">
-                        <li><a href="{{ url_for('sup_binary') }}">Binary Classifier</a></li>
-                        <li><a href="{{ url_for('sup_l2r') }}">Sentence Ranking</a></li>
-                    </ul>
-                </li>
-                <li class="dropdown">
-                    <a href="#" class="dropdown-toggle" data-toggle="dropdown" role="button" aria-haspopup="true"
-                       aria-expanded="false">Unsupervised<span class="caret"></span></a>
-                    <ul class="dropdown-menu">
-                        <li><a href="#">Semantic Similarity Measure</a></li>
-                    </ul>
-            </ul>
-        </div>
+            <div class="collapse navbar-collapse" id="bs-example-navbar-collapse-1">
+                <ul class="nav navbar-nav" id="nav">
+                    <li class="active">
+                        <a href="#" class="dropdown-toggle" data-toggle="dropdown" role="button" aria-haspopup="true"
+                           aria-expanded="false">Supervised<span class="caret"></span></a>
+                        <ul class="dropdown-menu">
+                            <li><a href="{{ url_for('sup_binary') }}">Binary Classifier</a></li>
+                            <li><a href="{{ url_for('sup_l2r') }}">Sentence Ranking</a></li>
+                        </ul>
+                    </li>
+                    <li class="dropdown">
+                        <a href="#" class="dropdown-toggle" data-toggle="dropdown" role="button" aria-haspopup="true"
+                           aria-expanded="false">Unsupervised<span class="caret"></span></a>
+                        <ul class="dropdown-menu">
+                            <li><a href="#">Semantic Similarity Measure</a></li>
+                        </ul>
+                </ul>
+            </div>
 
-    </div>
-</nav>
+        </div>
+    </nav>
 {% endblock %}
 
 {% block content %}
-<div class="container">
-    <form action="{{ url_for('sup_rank')}}" method="POST">
-        <div style="text-align:center;" class="home-template">
-            <h3>Supervised - Learning to Rank Classifier</h3>
-            <p class="lead">Type in a source sentence and a list of target sentences
-                to find out the most similar ones for your query of interest! <br/>
-                Please write each sentence of the target language in a new line or<br/> check the Europarl box below
-                if you want to load a set of Europarl sentences in your selected language.
-            </p>
-        </div>
-
-        <div class="form-row col-lg-12">
-            <br/>
-            <div class="form-group-row col-lg-6">
-                <div class="form-group-row col-lg-3">
-                    <!--      <label for="src_lan">Source language</label>-->
-                    <select id="src_lan" name="src_lan" class="form-control">
-                        <option value="english" selected>English</option>
-                        <option value="german">German</option>
-                        <option value="french">French</option>
-                    </select>
-                </div>
-                <div class="form-group col-lg-9">
-                    <!--      <label for="src_sen"></label>-->
-                    <textarea class="form-control" id="src_sen" name="src_sen"
-                              placeholder="Please type in source sentence.." rows="1"></textarea>
-                    <!--               <input type="text" placeholder="Please type in source sentence.." class="form-control" id="src_sen" name="src_sen">-->
-                </div>
+    <div class="container">
+        <form action="{{ url_for('sup_rank') }}" method="POST">
+            <div style="text-align:center;" class="home-template">
+                <h3>Supervised - Learning to Rank Classifier</h3>
+                <p class="lead">Type in a source sentence and a list of target sentences
+                    to find out the most similar ones for your query of interest! <br/>
+                    Please write each sentence of the target language in a new line or<br/> check the Europarl box below
+                    if you want to load a set of Europarl sentences in your selected language.
+                </p>
             </div>
-            <div class="form-group col-lg-6">
-                <div class="form-group col-lg-9">
-                    <!--      <label for="trg_sen"></label>-->
-                    <textarea class="form-control" id="trg_sen" name="trg_sen"
-                              placeholder="Please type in list of target sentences.." rows="1"></textarea>
-                    <!--               <input type="text" placeholder="Please type in target sentence.." class="form-control" id="trg_sen" name="trg_sen">-->
-                </div>
 
-                <div class="form-group col-lg-3">
-                    <div class="row align-center">
-                        <!--      <label for="trg_lan">Target language</label>-->
-                        <select id="trg_lan" name="trg_lan" class="form-control">
-                            <option value="english">English</option>
-                            <option value="german" selected>German</option>
+            <div class="form-row col-lg-12">
+                <br/>
+                <div class="form-group-row col-lg-6">
+                    <div class="form-group-row col-lg-3">
+                        <!--      <label for="src_lan">Source language</label>-->
+                        <select id="src_lan" name="src_lan" class="form-control">
+                            <option value="english" selected>English</option>
+                            <option value="german">German</option>
                             <option value="french">French</option>
                         </select>
                     </div>
-                    <div class="form-group">
-                        <input type="checkbox" value="europarl" name="europarl_check"> Europarl
+                    <div class="form-group col-lg-9">
+                        <!--      <label for="src_sen"></label>-->
+                        <textarea class="form-control" id="src_sen" name="src_sen"
+                                  placeholder="Please type in source sentence.." rows="1"></textarea>
+                        <!--               <input type="text" placeholder="Please type in source sentence.." class="form-control" id="src_sen" name="src_sen">-->
+                    </div>
+                </div>
+                <div class="form-group col-lg-6">
+                    <div class="form-group col-lg-9">
+                        <!--      <label for="trg_sen"></label>-->
+                        <textarea class="form-control" id="trg_sen" name="trg_sen"
+                                  placeholder="Please type in list of target sentences.." rows="1"></textarea>
+                        <!--               <input type="text" placeholder="Please type in target sentence.." class="form-control" id="trg_sen" name="trg_sen">-->
+                    </div>
+
+                    <div class="form-group col-lg-3">
+                        <div class="row align-center">
+                            <!--      <label for="trg_lan">Target language</label>-->
+                            <select id="trg_lan" name="trg_lan" class="form-control">
+                                <option value="english">English</option>
+                                <option value="german" selected>German</option>
+                                <option value="french">French</option>
+                            </select>
+                        </div>
+                        <div class="form-group">
+                            <input type="checkbox" value="europarl" name="europarl_check"> Europarl
+                        </div>
                     </div>
                 </div>
             </div>
-        </div>
 
-        <div style="text-align:center;">
-            <p class="lead">Select the number of sentences to be displayed that best match to your query:</p>
-        </div>
-
-        <div style="text-align:center;">
-            <!--      <label for="src_lan">Source language</label>-->
-            <select id="k" name="k" class="form-control">
-                <option value="all" selected>Show all sentences ranked in descending order</option>
-                <ol>
-                    {%for i in [1,2,3,4,5,6,7,8,9,10,20,30,40,50,60,70,80,90,100]%}
-                    <option value="{{i}}">{{i}}</option>
-                    {%endfor%}
-
-                </ol>
-            </select>
-        </div>
-
-        <br/>
-
-        <div style="text-align:center;">
-            <p class="lead">Select the model to be used to evaluate your model:</p>
-        </div>
-
-        <div style="text-align:center;" class="form-row col-lg-12">
-            <div style="text-align:right;" class="form-group-row col-lg-6">
-                <!-- Material unchecked -->
-                <div class="form-check">
-                    <input type="radio" value="rb_log_reg" name="rb_sup_model" checked> Logistic Regression
-                </div>
+            <div style="text-align:center;">
+                <p class="lead">Select the number of sentences to be displayed that best match to your query:</p>
             </div>
-            <div style="text-align:left;" class="form-group col-lg-6">
-                <!-- Material checked -->
-                <div class="form-check">
-                    <input type="radio" value="rb_lstm" name="rb_sup_model"> Long Short-Term Memory
-                </div>
+
+            <div style="text-align:center;">
+                <!--      <label for="src_lan">Source language</label>-->
+                <select id="k" name="k" class="form-control">
+                    <option value="all" selected>Show all sentences ranked in descending order</option>
+                    <ol>
+                        {% for i in [1,2,3,4,5,6,7,8,9,10,20,30,40,50,60,70,80,90,100] %}
+                            <option value="{{ i }}">{{ i }}</option>
+                        {% endfor %}
+
+                    </ol>
+                </select>
             </div>
-        </div>
 
-
-        <div class="row" style=text-align:center;">
             <br/>
-            <button type="submit" class="btn btn-default">Submit</button>
-        </div>
-    </form>
-</div>
+
+            <div style="text-align:center;">
+                <p class="lead">Select the model to be used to evaluate your model:</p>
+            </div>
+
+            <div style="text-align:center;" class="form-row col-lg-12">
+                <div style="text-align:right;" class="form-group-row col-lg-4">
+                    <!-- Material unchecked -->
+                    <div class="form-check">
+                        <input type="radio" value="rb_log_reg" name="rb_sup_model" checked> Logistic Regression
+                    </div>
+                </div>
+                <div style="text-align:center;" class="form-group col-lg-4">
+                    <!-- Material checked -->
+                    <div class="form-check">
+                        <input type="radio" value="rb_mlp" name="rb_sup_model"> Multilayer Perceptron
+                    </div>
+                </div>
+                <div style="text-align:left;" class="form-group col-lg-4">
+                    <!-- Material checked -->
+                    <div class="form-check">
+                        <input type="radio" value="rb_lstm" name="rb_sup_model"> Long Short-Term Memory
+                    </div>
+                </div>
+            </div>
+
+
+            <div class="row" style=text-align:center;">
+                <br/>
+                <button type="submit" class="btn btn-default">Submit</button>
+            </div>
+        </form>
+    </div>
 {% endblock %}
