@@ -12,6 +12,7 @@ from ir_crosslingual.utils import paths
 
 from ir_crosslingual.features import text_based
 from ir_crosslingual.features import vector_based
+from ir_crosslingual.unsupervised_classification.unsup_model import UnsupModel
 
 from ir_crosslingual.main import app
 
@@ -169,6 +170,58 @@ def sup_rank():
                                num_sentences=len(top_sens), top_sens=top_sens,
                                top_probs=['%.2f' % (i * 100) for i in top_probs],
                                src_language=src_language.capitalize(), trg_language=trg_language.capitalize())
+
+
+@app.route('/unsupervised_binary')
+def unsup_binary():
+    return render_template('unsup_binary.html')
+
+
+@app.route('/unsupervised_binary/predict', methods=['POST'])
+def unsup_predict():
+    if request.method == 'POST':
+        src_sentence = request.form['src_sen']
+        trg_sentence = request.form['trg_sen']
+        src_language = request.form['src_lan']
+        trg_language = request.form['trg_lan']
+
+        if src_language == trg_language:
+            return render_template('result_binary.html', prediction=-4.1, src_sentence=src_sentence, trg_sentence=trg_sentence,
+                                   src_language=src_language.capitalize(), trg_language=trg_language.capitalize())
+
+        if src_sentence == "":
+            return render_template('result_binary.html', prediction=-1.1, src_sentence=src_sentence, trg_sentence=trg_sentence,
+                                   src_language=src_language.capitalize(), trg_language=trg_language.capitalize())
+        if trg_sentence == "":
+            return render_template('result_binary.html', prediction=-1.2, src_sentence=src_sentence, trg_sentence=trg_sentence,
+                                   src_language=src_language.capitalize(), trg_language=trg_language.capitalize())
+
+    model = UnsupModel()
+
+    source = embeddings.WordEmbeddings.get_embeddings(language=paths.languages_inversed[src_language])
+    target = embeddings.WordEmbeddings.get_embeddings(language=paths.languages_inversed[trg_language])
+    sens = sentences.Sentences(src_words=source, trg_words=target)
+    data = sens.load_data(src_sentences=src_sentence, trg_sentences=trg_sentence, single_source=True)
+
+    try:
+        if data == -1:
+            return render_template('result_binary.html', prediction=-2.1, src_sentence=src_sentence, trg_sentence=trg_sentence,
+                                   src_language=src_language.capitalize(), trg_language=trg_language.capitalize())
+        if data == -2:
+            return render_template('result_binary.html', prediction=-2.2, src_sentence=src_sentence, trg_sentence=trg_sentence,
+                                   src_language=src_language.capitalize(), trg_language=trg_language.capitalize())
+    except ValueError:
+        pass
+
+    features = ['src_embedding_aligned', 'trg_embedding']
+    prediction = model.predict_proba(data[features])[0]
+    print(f'---- INFO: Predictions: {prediction}')
+    print(f'---- INFO: Type of predictions: {type(prediction)}')
+    print(f'---- INFO: Shape of predictions: {prediction.shape}')
+    prediction = prediction[1]
+
+    return render_template('result_unsup_binary.html', prediction=float('%.4f' % prediction), src_sentence=src_sentence, trg_sentence=trg_sentence,
+                           src_language=src_language.capitalize(), trg_language=trg_language.capitalize())
 
 
 if __name__ == '__main__':

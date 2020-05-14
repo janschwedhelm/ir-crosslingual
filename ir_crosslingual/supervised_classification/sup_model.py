@@ -95,6 +95,7 @@ class SupModel:
 
     @staticmethod
     def compute_map(model, sentences: Sentences, features=None):
+        print('---- INFO: Start computing the MAP')
         data = sentences.test_collection.copy()
         if features is None:
             features_dict = sentences.features_dict
