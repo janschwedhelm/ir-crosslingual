@@ -338,7 +338,7 @@ class Sentences:
 
     def load_data(self, src_sentences=None, trg_sentences=None, single_source: bool = False, n_max: int = 5000,
                   to_lower: bool = True, remove_stopwords: bool = True, remove_punctuation: bool = False,
-                  agg_method: str = 'average', features=None, vectorizer=None, dim_red=10, use_ppa=False):
+                  agg_method: str = 'average', features=None, vectorizer=None):
         """
         :param src_sentences: Single source sentence in string format.
         If None, Europarl sentences for the source language are loaded
@@ -369,7 +369,6 @@ class Sentences:
         self.to_lower = to_lower
         self.remove_stopwords = remove_stopwords
         self.remove_punctuation = remove_punctuation
-        self.dim_emb = dim_red
         if agg_method not in Sentences.AGGREGATION_METHODS:
             raise ValueError("Method must be one of {}.".format(Sentences.AGGREGATION_METHODS))
         else:
@@ -398,12 +397,6 @@ class Sentences:
         if len(self.sentences_preprocessed[self.trg_lang]) == 0:
             print('---- ERROR: No valid target sentence left after preprocessing steps')
             return -2
-        for prefix in ['src', 'trg']:
-            self.data[['{}_embedding_pca_{}'.format(prefix, i) for i in range(dim_red)]] = pd.DataFrame(
-                self.reduce_dim(self.data['{}_embedding'.format(prefix)], dim_red, use_ppa=use_ppa).tolist())
-            #self.data[['{}_embedding_{}'.format(prefix, i) for i in range(300)]] = pd.DataFrame(
-            #    self.data['{}_embedding'.format(prefix)].tolist())
-        print('---- DONE: Sentence embedding vector elements extracted')
         self.data['src_sentence'] = self.sentences[self.src_lang]
         self.data['trg_sentence'] = self.sentences[self.trg_lang]
         self.data['src_preprocessed'] = self.sentences_preprocessed[self.src_lang]
@@ -429,13 +422,11 @@ class Sentences:
         self.src_prepared_features = ['src_{}'.format(feature)
                                       for feature in
                                       ['sentence', 'preprocessed', 'embedding', 'embedding_aligned', 'words', 'words_found_embedding']] \
-                                     + ['src_{}'.format(feature) for feature in self.prepared_features] \
-                                     + ['src_embedding_pca_{}'.format(i) for i in range(self.dim_emb)]
+                                      + ['src_{}'.format(feature) for feature in self.prepared_features]
 
         self.trg_prepared_features = ['trg_{}'.format(feature)
                                       for feature in ['sentence', 'preprocessed', 'embedding', 'words', 'words_found_embedding']] \
-                                     + ['trg_{}'.format(feature) for feature in self.prepared_features] \
-                                     + ['trg_embedding_pca_{}'.format(i) for i in range(self.dim_emb)]
+                                      + ['trg_{}'.format(feature) for feature in self.prepared_features]
 
     def create_train_set(self, n_train: int, frac_pos: float):
         df = self.data
