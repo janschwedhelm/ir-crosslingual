@@ -421,10 +421,12 @@ class Sentences:
     def build_separate_prepared_features_list(self):
         self.src_prepared_features = ['src_{}'.format(feature)
                                       for feature in
-                                      ['sentence', 'preprocessed', 'embedding', 'embedding_aligned', 'words', 'words_found_embedding']]
+                                      ['sentence', 'preprocessed', 'embedding', 'embedding_aligned', 'words', 'words_found_embedding']] \
+                                      + ['src_{}'.format(feature) for feature in self.prepared_features]
 
         self.trg_prepared_features = ['trg_{}'.format(feature)
-                                      for feature in ['sentence', 'preprocessed', 'embedding', 'words', 'words_found_embedding']]
+                                      for feature in ['sentence', 'preprocessed', 'embedding', 'words', 'words_found_embedding']] \
+                                      + ['trg_{}'.format(feature) for feature in self.prepared_features]
 
     def create_train_set(self, n_train: int, frac_pos: float):
         df = self.data
