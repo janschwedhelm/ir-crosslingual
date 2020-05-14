@@ -101,16 +101,19 @@ class SupModel:
             features = [feature for values in features_dict.values() for feature in values]
 
         pred_probas = model.predict_proba(data[features])[:, 1]
-
+        print('---- INFO: Probabilities predicted')
         data['trans_proba'] = pred_probas
 
         eval_rank = pd.DataFrame()
         eval_rank[['query', 'true_translation']] = data[data['translation'] == 1][
             ['src_sentence', 'trg_sentence']]
+        print('---- INFO: Dataframe with evaluation ranking created')
         eval_rank['ranking'] = eval_rank.apply(lambda row: list(
             data[data['src_sentence'] == row['query']].sort_values('trans_proba', ascending=False)[
                 'trg_sentence']), axis=1)
+        print('---- INFO: Probabilities sorted for each query')
         eval_rank['rank_true'] = eval_rank.apply(lambda row: row['ranking'].index(row['true_translation']) + 1, axis=1)
+        print('---- INFO: Index of ranking of true translation retrieved')
 
         return sum([1 / rank for rank in eval_rank['rank_true']]) / len(eval_rank)
 

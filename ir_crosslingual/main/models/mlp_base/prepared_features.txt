@@ -1,7 +1,5 @@
-norm_diff_translated_words
-norm_diff_num_punctuation
-abs_diff_occ_question_mark
-abs_diff_occ_exclamation_mark
-norm_diff_num_words
-euclidean_distance
-cosine_similarity
+translated_words
+num_punctuation
+occ_question_mark
+occ_exclamation_mark
+num_words
