@@ -27,7 +27,9 @@ sentence_dictionaries = {
     'de-en': '{}europarl_datasets/de-en/Europarl.de-en'.format(data_path),
     'en-de': '{}europarl_datasets/de-en/Europarl.de-en'.format(data_path),
     'de-fr': '{}europarl_datasets/de-fr/Europarl.de-fr'.format(data_path),
-    'fr-de': '{}europarl_datasets/de-fr/Europarl.de-fr'.format(data_path)
+    'fr-de': '{}europarl_datasets/de-fr/Europarl.de-fr'.format(data_path),
+    'en-fr': '{}europarl_datasets/en-fr/Europarl.en-fr'.format(data_path),
+    'fr-en': '{}europarl_datasets/en-fr/Europarl.en-fr'.format(data_path)
 }
 languages = {
     'de': 'german',
