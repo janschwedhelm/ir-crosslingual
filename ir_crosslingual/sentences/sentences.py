@@ -414,8 +414,10 @@ class Sentences:
             self.prepare_features(features=features)
         print('---- DONE: All features prepared')
         self.data.drop_duplicates(['src_sentence', 'trg_sentence'], inplace=True)
-        print('---- DONE: Dropped duplicates and created full dataset')
-        print(f'---- INFO: Length of dataset after preprocessing and duplicate handling: {len(self.data)}')
+        print('---- INFO: Dropped duplicates')
+        self.data = self.data[(self.data['src_sentence'] != '.') & (self.data['trg_sentence'] != '.')]
+        print("---- INFO: Delete sentences containing only a \'.\'")
+        print(f'---- DONE: Data loaded. Length of dataset after preprocessing and duplicate handling: {len(self.data)}')
         return self.data
 
     def build_separate_prepared_features_list(self):
