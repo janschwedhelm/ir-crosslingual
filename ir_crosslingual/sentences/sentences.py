@@ -413,7 +413,7 @@ class Sentences:
         if features is not None:
             self.prepare_features(features=features)
         print('---- DONE: All features prepared')
-        self.data.drop_duplicates(['src_sentence', 'trg_sentence'], inplace=True)
+        self.data.drop_duplicates(['src_sentence', 'trg_sentence'], inplace=True, ignore_index=True)
         print('---- INFO: Dropped duplicates')
         self.data = self.data[(self.data['src_sentence'] != '.') & (self.data['trg_sentence'] != '.')]
         print("---- INFO: Delete sentences containing only a \'.\'")
