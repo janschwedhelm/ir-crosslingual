@@ -31,6 +31,16 @@ sentence_dictionaries = {
     'en-fr': '{}europarl_datasets/en-fr/Europarl.en-fr'.format(data_path),
     'fr-en': '{}europarl_datasets/en-fr/Europarl.en-fr'.format(data_path)
 }
+
+extracted_data = {
+    'en-de': '{}extracted_data/global/en-de/'.format(data_path),
+    'de-en': '{}extracted_data/global/de-en/'.format(data_path),
+    'en-fr': '{}extracted_data/global/en-fr/'.format(data_path),
+    'fr-en': '{}extracted_data/global/fr-en/'.format(data_path),
+    'en-fi': '{}extracted_data/global/en-fi/'.format(data_path),
+    'fi-en': '{}extracted_data/global/fi-en/'.format(data_path)
+}
+
 languages = {
     'de': 'german',
     'en': 'english',
