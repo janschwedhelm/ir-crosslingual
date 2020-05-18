@@ -56,6 +56,7 @@ class Sentences:
         self.data = pd.DataFrame()
         self.train_data = pd.DataFrame()
         self.test_collection = pd.DataFrame()
+        self.test_chunks = list()
 
         self.dim_emb = 300
 
@@ -110,6 +111,24 @@ class Sentences:
         print(f'---- DONE: All files loaded and features extracted')
         return sens, sens.train_data.copy(), sens.test_collection.copy(), \
                [feature for values in sens.features_dict.values() for feature in values]
+
+    @classmethod
+    def load_chunks_from_file(cls, src_language: str = 'en', trg_language: str = 'de', vector_creation: str = 'avg',
+                              n_chunks: int = 20):
+        source = WordEmbeddings(src_language)
+        source.load_embeddings()
+
+        target = WordEmbeddings(trg_language)
+        target.load_embeddings()
+
+        W_st, W_ts = WordEmbeddings.learn_projection_matrix(src_lang=src_language, trg_lang=trg_language)
+
+        sens = Sentences(source, target)
+        path = paths.extracted_data[f'{src_language}-{trg_language}']
+        sens.test_chunks = [pd.read_pickle(f'{path}test_collection_{idx:02d}_{vector_creation}.pkl')
+                            for idx in range(n_chunks)]
+        print(f'---- DONE: All chunks loaded')
+        return sens, sens.test_chunks
 
     def get_word_embeddings(self, source: bool = True):
         return self.word_embeddings[not source] if source else self.word_embeddings[not source]
