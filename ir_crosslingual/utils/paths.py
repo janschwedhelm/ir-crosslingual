@@ -23,6 +23,15 @@ expert_dictionaries = {
     'en-fr': '{}expert_dictionaries/en-fr/MUSE_en-fr.0-5000.txt'.format(data_path)
 }
 
+test_expert_dictionaries = {
+    'de-en': '{}expert_dictionaries/de-en/MUSE_de-en.5000-6500.txt'.format(data_path),
+    'en-de': '{}expert_dictionaries/en-de/MUSE_en-de.5000-6500.txt'.format(data_path),
+    'de-fr': '{}expert_dictionaries/de-fr/MUSE_de-fr.5000-6500.txt'.format(data_path),
+    'fr-de': '{}expert_dictionaries/fr-de/MUSE_fr-de.5000-6500.txt'.format(data_path),
+    'fr-en': '{}expert_dictionaries/fr-en/MUSE_fr-en.5000-6500.txt'.format(data_path),
+    'en-fr': '{}expert_dictionaries/en-fr/MUSE_en-fr.5000-6500.txt'.format(data_path)
+}
+
 sentence_dictionaries = {
     'de-en': '{}europarl_datasets/de-en/Europarl.de-en'.format(data_path),
     'en-de': '{}europarl_datasets/de-en/Europarl.de-en'.format(data_path),
