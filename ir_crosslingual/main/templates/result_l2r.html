@@ -81,13 +81,13 @@
                                 <p class="lead">These are the top matches for your query in <b>{{ trg_language }}</b>
                                 </p>
                                 <ol>
-                                    {% if model == "mlp_base" %}
+                                    {% if model == "mlp_avg_best" %}
                                         {% for i in range(0, num_sentences) %}
 
                                             <li><b>{{ top_sens[i] }}</b><br/>with a similarity score
                                                 of {{ top_probs[i] }}<br/><br/></li>
                                         {% endfor %}
-                                    {% elif model != "mlp_base" %}
+                                    {% elif model != "mlp_avg_best" %}
                                         {% for i in range(0, num_sentences) %}
 
                                             <li><b>{{ top_sens[i] }}</b><br/>with a probability

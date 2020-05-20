@@ -345,7 +345,7 @@ class Sentences:
 
         # 2. PCA
         # PCA Dim Reduction
-        pca = PCA(n_components=new_dim)
+        pca = PCA(n_components=new_dim, random_state=42)
         X = X - np.mean(X)
         X = pca.fit_transform(X)
 
