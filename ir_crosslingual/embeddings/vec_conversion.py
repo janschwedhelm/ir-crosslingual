@@ -39,5 +39,5 @@ def save_files(language: str, n_max: int = 50000):
 
 
 if __name__ == '__main__':
-    for language in 'en de fr'.split():
+    for language in 'en de fr fi'.split():
         save_files(language)

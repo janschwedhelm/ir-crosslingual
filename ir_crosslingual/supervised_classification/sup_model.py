@@ -119,7 +119,7 @@ class SupModel:
         return sum([1 / rank for rank in eval_rank['rank_true']]) / len(eval_rank)
 
     @staticmethod
-    def rank_trg_sentences(model, sentences: Sentences, single_source: bool = False, evaluation: bool = True):
+    def rank_trg_sentences(model, sentences: Sentences, features, single_source: bool = False, evaluation: bool = True):
         """
         Rank target sentences for each given source sentence according to their predicted probability
         :param model: Pretrained model object
@@ -132,13 +132,11 @@ class SupModel:
         :return: List of ranked sentences and list of ranked probabilities
         """
 
-        data = sentences.test_data.copy() if evaluation else sentences.data.copy()
+        data = sentences.test_collection.copy() if evaluation else sentences.data.copy()
         prepared_features = sentences.prepared_features
-        features_dict = sentences.features_dict
 
         def predict(prediction_data):
-            predictions = model.predict_proba(prediction_data[[feature for values in features_dict.values()
-                                                               for feature in values]])
+            predictions = model.predict_proba(prediction_data[features])
             ranked_indices = predictions[:, 1].argsort()[::-1]
             top_sen = list(prediction_data['trg_sentence'].iloc[ranked_indices])
             top_prob = predictions[:, 1][ranked_indices]
