@@ -1,7 +1,6 @@
 from flask import Flask, render_template, url_for, request
 import pandas as pd
 import numpy as np
-import pickle
 from sklearn.externals import joblib
 
 
@@ -21,14 +20,21 @@ MODEL_FEATURES = ['src_sentence', 'trg_sentence', 'translation',
                   'norm_diff_num_punctuation', 'euclidean_distance', 'cosine_similarity'] \
                  + ['src_embedding_pca_{}'.format(i) for i in range(10)] \
                  + ['trg_embedding_pca_{}'.format(i) for i in range(10)]
-
-features_1 = 'norm_diff_translated_words norm_diff_num_punctuation abs_diff_occ_question_mark_0 abs_diff_occ_question_mark_1 abs_diff_occ_question_mark_2 abs_diff_occ_exclamation_mark_0 abs_diff_occ_exclamation_mark_1 abs_diff_occ_exclamation_mark_2 norm_diff_num_words euclidean_distance cosine_similarity'.split()
-features_2 = list(set(features_1 + ['abs_diff_num_words', 'abs_diff_num_punctuation']) - set(['norm_diff_num_punctuation']))
-features_4 = features_2 + ['src_embedding_pca_{}'.format(i) for i in range(10)] + ['trg_embedding_pca_{}'.format(i) for i in range(10)]
-
 RAW_FEATURES = ['src_sentence', 'trg_sentence']
 LABEL = 'translation'
 
+# feature order of best MLP model
+features_mlp = ['norm_diff_num_words', 'euclidean_distance', 'abs_diff_occ_exclamation_mark_0',
+                'abs_diff_occ_question_mark_2', 'abs_diff_occ_question_mark_0', 'cosine_similarity',
+                'norm_diff_translated_words', 'abs_diff_occ_exclamation_mark_1', 'abs_diff_occ_question_mark_1',
+                'abs_diff_num_words', 'abs_diff_occ_exclamation_mark_2', 'abs_diff_num_punctuation','src_embedding_pca_0',
+                'src_embedding_pca_1', 'src_embedding_pca_2', 'src_embedding_pca_3', 'src_embedding_pca_4',
+                'src_embedding_pca_5', 'src_embedding_pca_6', 'src_embedding_pca_7', 'src_embedding_pca_8',
+                'src_embedding_pca_9', 'trg_embedding_pca_0', 'trg_embedding_pca_1', 'trg_embedding_pca_2',
+                'trg_embedding_pca_3', 'trg_embedding_pca_4', 'trg_embedding_pca_5', 'trg_embedding_pca_6',
+                'trg_embedding_pca_7', 'trg_embedding_pca_8', 'trg_embedding_pca_9']
+
+# load fitted models/scalers of best runs for MLP & Logistic Regression
 pca = {}
 mean_scaler = {}
 scaler = joblib.load(open('models/scaler/ct.pkl', 'rb'))
@@ -36,6 +42,9 @@ for prefix in ['src', 'trg']:
     mean_scaler['{}'.format(prefix)] = joblib.load(open('models/mean_scaler/mean_scaler_{}.pkl'.format(prefix),
                                                         'rb'))
     pca['{}'.format(prefix)] = joblib.load(open('models/pca/pca_{}.pkl'.format(prefix), 'rb'))
+
+mlp_model, mlp_prepared_features, mlp_features_dict = sup_model.SupModel.load_model(name='mlp_avg_best')
+lr_model, lr_prepared_features, lr_features_dict = sup_model.SupModel.load_model(name='logReg_v0.2')
 
 
 def init_word_embeddings():
@@ -102,12 +111,16 @@ def sup_predict():
             print('Multilayer Perceptron chosen for evaluation')
             name = 'mlp_avg_best'
 
-    model, prepared_features, features_dict = sup_model.SupModel.load_model(name=name)
-
     source = embeddings.WordEmbeddings.get_embeddings(language=paths.languages_inversed[src_language])
     target = embeddings.WordEmbeddings.get_embeddings(language=paths.languages_inversed[trg_language])
     sens = sentences.Sentences(src_words=source, trg_words=target)
-    data = sens.load_data(src_sentences=src_sentence, trg_sentences=trg_sentence, single_source=True, features=prepared_features)
+
+    if name == 'mlp_avg_best':
+        data = sens.load_data(src_sentences=src_sentence, trg_sentences=trg_sentence, single_source=True,
+                              features=mlp_prepared_features)
+    else:
+        data = sens.load_data(src_sentences=src_sentence, trg_sentences=trg_sentence, single_source=True,
+                              features=lr_prepared_features)
 
     try:
         if data == -1:
@@ -119,7 +132,10 @@ def sup_predict():
     except ValueError:
         pass
 
-    data = sens.extract_features(features_dict=features_dict, data='all')
+    if name == 'mlp_avg_best':
+        data = sens.extract_features(features_dict=mlp_features_dict, data='all')
+    else:
+        data = sens.extract_features(features_dict=lr_features_dict, data='all')
 
     if name == 'mlp_avg_best':
         # apply PCA using models fitted on training data
@@ -133,12 +149,11 @@ def sup_predict():
         data = pd.DataFrame(scaler.transform(data[MODEL_FEATURES]))
         data.columns = get_transformer_feature_names(scaler) + RAW_FEATURES + [LABEL]
         data = data.infer_objects()
-        prediction = model.predict(data[features_4])
-        print(model.predict_proba(data[features_4]))
-
+        prediction = mlp_model.predict(data[features_mlp])
+        print(mlp_model.predict_proba(data[features_mlp]))
     else:
-        features = [feature for values in features_dict.values() for feature in values]
-        prediction = model.predict(data[features])
+        features = [feature for values in lr_features_dict.values() for feature in values]
+        prediction = lr_model.predict(data[features])
 
     return render_template('result_binary.html', prediction=prediction, src_sentence=src_sentence, trg_sentence=trg_sentence,
                            src_language=src_language.capitalize(), trg_language=trg_language.capitalize())
@@ -182,14 +197,23 @@ def sup_rank():
             print('Multilayer Perceptron chosen for evaluation')
             name = 'mlp_avg_best'
 
-    model, prepared_features, features = sup_model.SupModel.load_model(name=name)
-
     source = embeddings.WordEmbeddings.get_embeddings(language=paths.languages_inversed[src_language])
     target = embeddings.WordEmbeddings.get_embeddings(language=paths.languages_inversed[trg_language])
     sens = sentences.Sentences(src_words=source, trg_words=target)
-    sens.load_data(src_sentences=src_sentence, trg_sentences=trg_sentence, single_source=True, features=prepared_features)
+
+    if name == 'mlp_avg_best':
+        sens.load_data(src_sentences=src_sentence, trg_sentences=trg_sentence, single_source=True,
+                       features=mlp_prepared_features)
+    else:
+        sens.load_data(src_sentences=src_sentence, trg_sentences=trg_sentence, single_source=True,
+                       features=lr_prepared_features)
+
     sens.data.drop_duplicates(subset='trg_sentence', keep='first', inplace=True, ignore_index=True)
-    sens.extract_features(features_dict=features, data='all')
+
+    if name == 'mlp_avg_best':
+        sens.extract_features(features_dict=mlp_features_dict, data='all')
+    else:
+        sens.extract_features(features_dict=lr_features_dict, data='all')
 
     if name == 'mlp_avg_best':
         # apply PCA using models fitted on training data
@@ -208,10 +232,12 @@ def sup_rank():
         sens.data = sens.data.infer_objects()
 
     if name == 'mlp_avg_best':
-        features = features_4
+        features = features_mlp
+        top_sens, top_probs = sup_model.SupModel.rank_trg_sentences(mlp_model, sens, features,
+                                                                   single_source=True, evaluation=False)
     else:
         features = [feature for values in sens.features_dict.values() for feature in values]
-    top_sens, top_probs = sup_model.SupModel.rank_trg_sentences(model, sens, features,
+        top_sens, top_probs = sup_model.SupModel.rank_trg_sentences(lr_model, sens, features,
                                                                     single_source=True, evaluation=False)
     if top_probs[0] < 0.5:
         return render_template('result_l2r.html', prediction=0, src_sentence=src_sentence, trg_sentence=trg_sentence,
