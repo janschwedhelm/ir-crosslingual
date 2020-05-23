@@ -3,17 +3,18 @@ import numpy as np
 from ir_crosslingual.sentences.sentences import Sentences
 
 
-def vec2features(sens: Sentences, pca, mean_scaler):
+def vec2features(sens: Sentences, pca, mean_scaler, train=True):
     unique_queries = sens.test_collection.drop_duplicates('src_sentence', ignore_index=True)
     print('---- INFO: Unique queries extracted')
     unique_documents = sens.test_collection.drop_duplicates('trg_sentence', ignore_index=True)
     print('---- INFO: Unique documents extracted')
     for prefix in ['src', 'trg']:
-        print('---- INFO: Started extraction for {} language.'.format(prefix))
-        X = np.vstack(sens.train_data['{}_embedding'.format(prefix)])
-        sens.train_data[['{}_embedding_pca_{}'.format(prefix, i) for i in range(10)]] = \
-            pd.DataFrame(pca['{}'.format(prefix)].transform(mean_scaler['{}'.format(prefix)].transform(X)).tolist())
-        print('---- INFO: {}_embedding_pca elements extracted for train data.'.format(prefix))
+        if train:
+            print('---- INFO: Started extraction for {} language.'.format(prefix))
+            X = np.vstack(sens.train_data['{}_embedding'.format(prefix)])
+            sens.train_data[['{}_embedding_pca_{}'.format(prefix, i) for i in range(10)]] = \
+                pd.DataFrame(pca['{}'.format(prefix)].transform(mean_scaler['{}'.format(prefix)].transform(X)).tolist())
+            print('---- INFO: {}_embedding_pca elements extracted for train data.'.format(prefix))
         if prefix == 'src':
             X = np.vstack(unique_queries['{}_embedding'.format(prefix)])
             unique_queries[['{}_embedding_pca_{}'.format(prefix, i) for i in range(10)]] = \
