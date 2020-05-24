@@ -114,7 +114,7 @@ class Sentences:
 
     @classmethod
     def load_chunks_from_file(cls, src_language: str = 'en', trg_language: str = 'de', vector_creation: str = 'avg',
-                              n_chunks: int = 20):
+                              n_chunks: int = 20, docs: bool = False, train: bool = None):
         source = WordEmbeddings(src_language)
         source.load_embeddings()
 
@@ -124,11 +124,21 @@ class Sentences:
         W_st, W_ts = WordEmbeddings.learn_projection_matrix(src_lang=src_language, trg_lang=trg_language)
 
         sens = Sentences(source, target)
-        path = paths.extracted_data[f'{src_language}-{trg_language}']
-        sens.test_chunks = [pd.read_pickle(f'{path}test_collection_{idx:02d}_{vector_creation}.pkl')
-                            for idx in range(n_chunks)]
-        print(f'---- DONE: All chunks loaded')
-        return sens, sens.test_chunks
+        path = paths.extracted_data['docs'] if docs else paths.extracted_data[f'{src_language}-{trg_language}']
+        if train is not None:
+            sens.train_chunks = [pd.read_pickle(f'{path}train/training_data_{idx:02d}_{vector_creation}.pkl')
+                                for idx in range(train[0])]
+            print(f'---- INFO: Files loaded containing training data')
+            sens.test_chunks = [pd.read_pickle(f'{path}test/test_collection_{idx:02d}_{vector_creation}.pkl')
+                                for idx in range(train[1])]
+            print(f'---- INFO: Files loaded containing test collection')
+            print(f'---- DONE: All chunks loaded')
+            return sens, sens.train_chunks, sens.test_chunks
+        else:
+            sens.test_chunks = [pd.read_pickle(f'{path}test_collection_{idx:02d}_{vector_creation}.pkl')
+                                for idx in range(n_chunks)]
+            print(f'---- DONE: All chunks loaded')
+            return sens, sens.test_chunks
 
     def get_word_embeddings(self, source: bool = True):
         return self.word_embeddings[not source] if source else self.word_embeddings[not source]
@@ -218,7 +228,6 @@ class Sentences:
                 del self.words_found_embeddings[language][idx]
 
     def get_found_word_embeddings(self):
-        print(f'---- INFO: Shape of source word embeddings')
         src_embeddings = self.word_embeddings[self.src_lang].embeddings @ self.projection_matrix
         trg_embeddings = self.word_embeddings[self.trg_lang].embeddings.copy()
         self.words_found_embeddings[self.src_lang] = [[src_embeddings[word] for word in sentence]
@@ -357,7 +366,7 @@ class Sentences:
 
     def load_data(self, src_sentences=None, trg_sentences=None, single_source: bool = False, n_max: int = 5000,
                   to_lower: bool = True, remove_stopwords: bool = True, remove_punctuation: bool = False,
-                  agg_method: str = 'average', features=None, vectorizer=None):
+                  agg_method: str = 'average', features=None, vectorizer=None, documents: bool = False):
         """
         :param src_sentences: Single source sentence in string format.
         If None, Europarl sentences for the source language are loaded
@@ -399,7 +408,7 @@ class Sentences:
             else [trg_sentences] if isinstance(trg_sentences, str) else trg_sentences
         print('---- DONE: Target sentences loaded')
         self.sentences[self.src_lang] = self.load_sentences(self.src_lang) if src_sentences is None \
-            else [src_sentences] * len(self.sentences[self.trg_lang])
+            else src_sentences if documents else [src_sentences] * len(self.sentences[self.trg_lang])
         print('---- DONE: Source sentences loaded')
         self.preprocess_sentences()
         print('---- DONE: Sentences preprocessed')
