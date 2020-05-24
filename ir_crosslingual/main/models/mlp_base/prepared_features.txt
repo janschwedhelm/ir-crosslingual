@@ -1,5 +1,0 @@
-translated_words
-num_punctuation
-occ_question_mark
-occ_exclamation_mark
-num_words

@@ -23,7 +23,7 @@ MODEL_FEATURES = ['src_sentence', 'trg_sentence', 'translation',
 RAW_FEATURES = ['src_sentence', 'trg_sentence']
 LABEL = 'translation'
 
-# feature order of best MLP model
+# feature order of best MLP model (average)
 features_mlp = ['norm_diff_num_words', 'euclidean_distance', 'abs_diff_occ_exclamation_mark_0',
                 'abs_diff_occ_question_mark_2', 'abs_diff_occ_question_mark_0', 'cosine_similarity',
                 'norm_diff_translated_words', 'abs_diff_occ_exclamation_mark_1', 'abs_diff_occ_question_mark_1',

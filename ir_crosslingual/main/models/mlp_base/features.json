@@ -1,5 +1,0 @@
-{"vector_based": ["euclidean_distance", "cosine_similarity"],
-  "text_based": ["norm_diff_translated_words", "abs_diff_num_words", "abs_diff_num_punctuation",
-                 "abs_diff_occ_question_mark", "abs_diff_occ_exclamation_mark",
-                 "rel_diff_num_words", "rel_diff_num_punctuation", "norm_diff_num_words",
-                 "norm_diff_num_punctuation"]}
