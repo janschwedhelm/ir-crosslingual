@@ -297,19 +297,3 @@ class WordEmbeddings:
             print(f'{word} -> {topk_translations[word]}')
 
         return accuracy, topk_translations
-
-
-if __name__ == '__main__':
-    german = WordEmbeddings('de')
-    german.load_embeddings()
-
-    english = WordEmbeddings('en')
-    english.load_embeddings()
-
-    WordEmbeddings.set_seed_dictionary(src_lang='en', trg_lang='de')
-    # print('\n', WordEmbeddings.get_seed_words('en', 'de')) # [:100] does not work if -1 is returned (in error case)
-    print('\n', WordEmbeddings.seed_words['en-de'][:100])
-
-    WordEmbeddings.learn_projection_matrix(src_lang='en', trg_lang='de')
-    # print(WordEmbeddings.get_projection_matrix('en', 'de')) # .shape does not work if -1 is returned (in error case)
-    print(WordEmbeddings.projection_matrices['en-de'].shape)

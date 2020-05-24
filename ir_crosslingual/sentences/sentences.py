@@ -114,7 +114,7 @@ class Sentences:
 
     @classmethod
     def load_chunks_from_file(cls, src_language: str = 'en', trg_language: str = 'de', vector_creation: str = 'avg',
-                              n_chunks: int = 20, docs: bool = False, train: bool = None):
+                              n_chunks: int = 20, docs: bool = False, train = None):
         source = WordEmbeddings(src_language)
         source.load_embeddings()
 
@@ -656,10 +656,3 @@ class Sentences:
         else:
             self.extraction(data=self.data, drop_prepared=drop_prepared)
             return self.data
-
-
-if __name__ == '__main__':
-    """
-    Test section
-    """
-    sens = Sentences(None, None)
