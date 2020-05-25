@@ -133,7 +133,6 @@ class SupModel:
         """
 
         data = sentences.test_collection.copy() if evaluation else sentences.data.copy()
-        prepared_features = sentences.prepared_features
 
         def predict(prediction_data):
             predictions = model.predict_proba(prediction_data[features])
@@ -142,51 +141,5 @@ class SupModel:
             top_prob = predictions[:, 1][ranked_indices]
             return [top_sen, top_prob]
 
-        def evaluate_sentence(idx):
-            src_features = ['src_{}'.format(feature) for feature in prepared_features]
-            trg_features = ['trg_{}'.format(feature) for feature in prepared_features]
-            num_sentences = len(data)
-
-            # TODO: Save time by also passing src embedding
-            tmp_data = pd.DataFrame({'src_sentence': [data['src_sentence'].iloc[idx]] * num_sentences,
-                                     'trg_sentence': data['trg_sentence'],
-                                     'src_embedding': [data['src_embedding'].iloc[idx]] * num_sentences,
-                                     'trg_embedding': data['trg_embedding']})
-
-            for feature in src_features:
-                tmp_data[feature] = [data[feature].iloc[idx]] * num_sentences
-            for feature in trg_features:
-                tmp_data[feature] = data[feature]
-
-            tmp_data = sentences.extraction(tmp_data, evaluation=True)
-            if idx % 100 == 0:
-                print('Done with index: {}'.format(idx))
-            return predict(tmp_data)
-
         if single_source:
             return predict(data)
-        else:
-            data['predictions'] = data.apply(lambda row: evaluate_sentence(row.name), axis=1)
-            data['predicted_sentences'] = data.apply(lambda row: row['predictions'][0], axis=1)
-            data['predicted_probabilities'] = data.apply(lambda row: row['predictions'][1], axis=1)
-
-            if evaluation:
-                sentences.test_data = data
-            else:
-                sentences.data = data
-
-    @staticmethod
-    def evaluate_at_k(sentences: Sentences, k: int, data: str = 'test'):
-        """
-        Compute accuracy @ k on given sentences. Boolean variable is added as a column to the dataset that is considered
-        :param sentences: Sentences object containing the data to perform evaluation on
-        :param k: Number of top sentences to consider
-        :param data: If data == 'test', evaluation is performed on self.test_data only.
-        If data != 'test', evaluation is performed on self.data.
-        :return: Return accuracy value
-        """
-        data = sentences.test_data if data == 'test' else sentences.data
-        data = data.loc[data['translation'] == 1]
-        data['accuracy@{}'.format(k)] = data.apply(
-            lambda row: 1 if row['trg_sentence'] in row['predicted_sentences'][:k] else 0, axis=1)
-        return sum(data['accuracy@{}'.format(k)]) / len(data)
