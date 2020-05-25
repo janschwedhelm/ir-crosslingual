@@ -45,7 +45,7 @@ for prefix in ['src', 'trg']:
     pca['{}'.format(prefix)] = joblib.load(open('models/pca/pca_{}.pkl'.format(prefix), 'rb'))
 
 mlp_model, mlp_prepared_features, mlp_features_dict = sup_model.SupModel.load_model(name='mlp_avg_best')
-lr_model, lr_prepared_features, lr_features_dict = sup_model.SupModel.load_model(name='logReg_v0.2')
+lr_model, lr_prepared_features, lr_features_dict = sup_model.SupModel.load_model(name='log_reg_best_avg')
 
 
 def init_word_embeddings():
@@ -192,7 +192,7 @@ def sup_rank():
 
         if request.form.get('rb_sup_model') == 'rb_log_reg':
             print('Logistic Regression chosen for evaluation')
-            name = 'log_reg_best_avg.2'
+            name = 'log_reg_best_avg'
         elif request.form.get('rb_sup_model') == 'rb_mlp':
             print('Multilayer Perceptron chosen for evaluation')
             name = 'mlp_avg_best'
