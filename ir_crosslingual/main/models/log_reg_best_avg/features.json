@@ -1,1 +1,1 @@
-{"text_based": ["norm_diff_translated_words", "abs_diff_occ_question_mark", "abs_diff_occ_exclamation_mark", "abs_diff_num_words", "abs_diff_num_punctuation"], "vector_based": "cosine_similarity"}
+{"text_based": ["norm_diff_translated_words", "abs_diff_occ_question_mark", "abs_diff_occ_exclamation_mark", "abs_diff_num_words", "abs_diff_num_punctuation"], "vector_based": ["cosine_similarity"]}
