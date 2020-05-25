@@ -13,7 +13,7 @@ Unzip it to the very same directiory you find this Readme, resulting in the foll
   * ir_crosslingual
 
 You can find and reproduce the results we obtained in our report by using the Jupyter notebooks we provide under "ir_crosslingual/notebooks". They are briefly described in the following:
-* **create_documents_collection.ipynb**: creates train data and test collection using German-English WikiCLIR data
+* **create_documents_collection.ipynb**: creates train data and test collection using German-English WikiCLIR data (please download respective files from https://www.cl.uni-heidelberg.de/statnlpgroup/wikiclir/ and put them under "data/wikiclir_v1" in order to reproduce the results)
 * **create_global_datasets.ipynb**: creates train data and test collection using English-German Europarl data
 * **create_global_test-collection.ipynb**: creates test collections of several language combinations using Europarl data
 * **evaluate_documents.ipynb**: evaluates models on WikiCLIR data (see Table 5 in our report)
