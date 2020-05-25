@@ -106,7 +106,7 @@ def sup_predict():
 
         if request.form.get('rb_sup_model') == 'rb_log_reg':
             print('Logistic Regression chosen for evaluation')
-            name = 'logReg_v0.2'
+            name = 'log_reg_best_avg'
         elif request.form.get('rb_sup_model') == 'rb_mlp':
             print('Multilayer Perceptron chosen for evaluation')
             name = 'mlp_avg_best'
@@ -192,7 +192,7 @@ def sup_rank():
 
         if request.form.get('rb_sup_model') == 'rb_log_reg':
             print('Logistic Regression chosen for evaluation')
-            name = 'logReg_v0.2'
+            name = 'log_reg_best_avg.2'
         elif request.form.get('rb_sup_model') == 'rb_mlp':
             print('Multilayer Perceptron chosen for evaluation')
             name = 'mlp_avg_best'
@@ -300,9 +300,6 @@ def unsup_predict():
 
     features = ['src_embedding_aligned', 'trg_embedding']
     prediction = model.predict_proba(data[features])[0]
-    print(f'---- INFO: Predictions: {prediction}')
-    print(f'---- INFO: Type of predictions: {type(prediction)}')
-    print(f'---- INFO: Shape of predictions: {prediction.shape}')
     prediction = prediction[1]
 
     return render_template('result_unsup_binary.html', prediction=float('%.4f' % prediction), src_sentence=src_sentence, trg_sentence=trg_sentence,
