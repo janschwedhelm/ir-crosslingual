@@ -23,7 +23,7 @@ class WordEmbeddings:
     N_MAX = 50000 # Having n_max as a class attribute means that for each language
     # we always load the same number of most frequent words.
     # Alternatively, this could also be passed to load_embeddings as a parameter
-    LEARNING_METHODS = ['procrustes']  # todo: implement further methods
+    LEARNING_METHODS = ['procrustes']
     SIMILARITY_MEASURES = ['cosine']
 
     def __init__(self, language, evaluation: bool = False):
@@ -136,7 +136,6 @@ class WordEmbeddings:
         :param trg_lang: Target language of the seed dictionary (short form, e.g. 'de')
         :param evaluation: If True, use test expert dictionary for evaluation of word embeddings
         """
-        # TODO: Check that languages are in list
 
         source = cls.get_test_embeddings(src_lang) if evaluation else cls.get_embeddings(src_lang)
         target = cls.get_test_embeddings(trg_lang) if evaluation else cls.get_embeddings(trg_lang)
@@ -220,7 +219,6 @@ class WordEmbeddings:
         :return: Return projection matrices in both directions
         """
         for s_lang, t_lang in zip([src_lang, trg_lang], [trg_lang, src_lang]):
-            # TODO: Always check that languages are in list
             print('---- INFO: Learn projection matrix for {}-{}'.format(s_lang, t_lang))
             source = cls.get_embeddings(s_lang)
             target = cls.get_embeddings(t_lang)
@@ -297,19 +295,3 @@ class WordEmbeddings:
             print(f'{word} -> {topk_translations[word]}')
 
         return accuracy, topk_translations
-
-
-if __name__ == '__main__':
-    german = WordEmbeddings('de')
-    german.load_embeddings()
-
-    english = WordEmbeddings('en')
-    english.load_embeddings()
-
-    WordEmbeddings.set_seed_dictionary(src_lang='en', trg_lang='de')
-    # print('\n', WordEmbeddings.get_seed_words('en', 'de')) # [:100] does not work if -1 is returned (in error case)
-    print('\n', WordEmbeddings.seed_words['en-de'][:100])
-
-    WordEmbeddings.learn_projection_matrix(src_lang='en', trg_lang='de')
-    # print(WordEmbeddings.get_projection_matrix('en', 'de')) # .shape does not work if -1 is returned (in error case)
-    print(WordEmbeddings.projection_matrices['en-de'].shape)

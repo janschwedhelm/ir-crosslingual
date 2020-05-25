@@ -13,6 +13,7 @@ from ir_crosslingual.unsupervised_classification.unsup_model import UnsupModel
 
 from ir_crosslingual.main import app
 
+# pre-define full list of model features
 MODEL_FEATURES = ['src_sentence', 'trg_sentence', 'translation',
                   'norm_diff_translated_words', 'abs_diff_num_words', 'abs_diff_num_punctuation',
                   'abs_diff_occ_question_mark', 'abs_diff_occ_exclamation_mark',
@@ -23,7 +24,7 @@ MODEL_FEATURES = ['src_sentence', 'trg_sentence', 'translation',
 RAW_FEATURES = ['src_sentence', 'trg_sentence']
 LABEL = 'translation'
 
-# feature order of best MLP model
+# feature order of best MLP model (average)
 features_mlp = ['norm_diff_num_words', 'euclidean_distance', 'abs_diff_occ_exclamation_mark_0',
                 'abs_diff_occ_question_mark_2', 'abs_diff_occ_question_mark_0', 'cosine_similarity',
                 'norm_diff_translated_words', 'abs_diff_occ_exclamation_mark_1', 'abs_diff_occ_question_mark_1',
@@ -44,11 +45,10 @@ for prefix in ['src', 'trg']:
     pca['{}'.format(prefix)] = joblib.load(open('models/pca/pca_{}.pkl'.format(prefix), 'rb'))
 
 mlp_model, mlp_prepared_features, mlp_features_dict = sup_model.SupModel.load_model(name='mlp_avg_best')
-lr_model, lr_prepared_features, lr_features_dict = sup_model.SupModel.load_model(name='logReg_v0.2')
+lr_model, lr_prepared_features, lr_features_dict = sup_model.SupModel.load_model(name='log_reg')
 
 
 def init_word_embeddings():
-    # TODO: Retrieve languages from sup_binary.html and initialize all languages from this list
     german = embeddings.WordEmbeddings('de')
     german.load_embeddings()
 
@@ -106,7 +106,7 @@ def sup_predict():
 
         if request.form.get('rb_sup_model') == 'rb_log_reg':
             print('Logistic Regression chosen for evaluation')
-            name = 'logReg_v0.2'
+            name = 'log_reg'
         elif request.form.get('rb_sup_model') == 'rb_mlp':
             print('Multilayer Perceptron chosen for evaluation')
             name = 'mlp_avg_best'
@@ -192,7 +192,7 @@ def sup_rank():
 
         if request.form.get('rb_sup_model') == 'rb_log_reg':
             print('Logistic Regression chosen for evaluation')
-            name = 'logReg_v0.2'
+            name = 'log_reg'
         elif request.form.get('rb_sup_model') == 'rb_mlp':
             print('Multilayer Perceptron chosen for evaluation')
             name = 'mlp_avg_best'
@@ -300,9 +300,6 @@ def unsup_predict():
 
     features = ['src_embedding_aligned', 'trg_embedding']
     prediction = model.predict_proba(data[features])[0]
-    print(f'---- INFO: Predictions: {prediction}')
-    print(f'---- INFO: Type of predictions: {type(prediction)}')
-    print(f'---- INFO: Shape of predictions: {prediction.shape}')
     prediction = prediction[1]
 
     return render_template('result_unsup_binary.html', prediction=float('%.4f' % prediction), src_sentence=src_sentence, trg_sentence=trg_sentence,

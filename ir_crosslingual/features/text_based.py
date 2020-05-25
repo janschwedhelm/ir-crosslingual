@@ -3,14 +3,6 @@ import nltk
 from statistics import mean
 from collections import Counter
 
-POS_TAGS = {'noun': 'NN NNS NNP NNPS'.split(),
-            'verb': 'VB VBD VBG VBN VBP VBZ'.split(),
-            'adverb': 'RB RBR RBS RP'.split(),
-            'adjective': 'JJ JJR JJS'.split(),
-            'wh': 'WDT WP WP$ WRB'.split(),
-            'pronoun': ' PDT POS PRP PRP$'.split()
-            }
-
 
 # Preparation of features
 def occ_punctuation(sentence: list, punctuation: str):
@@ -37,26 +29,6 @@ def count_tokens(sentence: list, punctuation=True):
     except TypeError:
         print('Parameter needs to be in string format')
         return -1
-
-
-def count_nltk_tags(sentence: list, word_group: str = 'noun'):
-    """
-    Counts the absolute number of a given word group in a list of sentences
-    :param sentence: List of sentence tokens in which to count the occurrence of the given word group
-    :param word_group: Word group to search for in sen
-    :return: Absolute number of the occurrence of the word group
-    """
-    # TODO: Can be made more efficient by loading POS TAGS only once
-    #  and then returning the number of all requested word groups all together instead of loading POS TAGS
-    #  for each word_group individually
-    if word_group not in POS_TAGS:
-        raise ValueError('POS-TAG must be one of {}.'.format(POS_TAGS))
-    pos_tags = POS_TAGS[word_group]
-    try:
-        _, tags = zip(*nltk.pos_tag(sentence))
-        return abs(sum(value for key, value in dict(Counter(tags)).items() if key in pos_tags))
-    except ValueError:
-        return 0
 
 
 def translate_words(sentence: list, seed_dict: dict):
@@ -112,7 +84,6 @@ def norm_difference(src_sen, trg_sen, single_source):
     (can be used when ranking target sentences for a single source sentence, e.g. in the WebApp)
     :return: Normalized difference in the number of occurrences between the source and the target sentence
     """
-    # TODO: If mean(src, trg) = 0, return 0 or -1?
     if single_source:
         return [(src_sen[0] - trg) / mean([src_sen[0], trg])
                 if mean([src_sen[0], trg]) > 0 else 0
@@ -173,10 +144,6 @@ PREPARED_FEATURES = {
     'occ_exclamation_mark': [occ_punctuation, 'preprocessed', {'punctuation': '!'}]
 }
 
-# for word_group in POS_TAGS:
-#     PREPARED_FEATURES['num_{}'.format(word_group)] = [count_nltk_tags, 'preprocessed', {'word_group': word_group}]
-
-
 # Dictionary of all text_based features that can be extracted on two sentences to compare
 # alongside the corresponding function that needs to be executed for the given feature
 # Structure: {'feature_name': [function to be called, column on which the function needs to be performed
@@ -188,35 +155,11 @@ FEATURES = {
     'abs_diff_num_punctuation': [abs_difference, 'num_punctuation'],
     'abs_diff_occ_question_mark': [equal_occurrence, 'occ_question_mark'],
     'abs_diff_occ_exclamation_mark': [equal_occurrence, 'occ_exclamation_mark'],
-    # 'abs_diff_num_noun': [abs_difference, 'num_noun'],
-    # 'abs_diff_num_verb': [abs_difference, 'num_verb'],
-    # 'abs_diff_num_adverb': [abs_difference, 'num_adverb'],
-    # 'abs_diff_num_adjective': [abs_difference, 'num_adjective'],
-    # 'abs_diff_num_wh': [abs_difference, 'num_wh'],
-    # 'abs_diff_num_pronoun': [abs_difference, 'num_pronoun'],
 
     'rel_diff_num_words': [rel_difference, 'num_words'],
     'rel_diff_num_punctuation': [rel_difference, 'num_punctuation'],
-    # 'rel_diff_num_noun': [rel_difference, 'num_noun'],
-    # 'rel_diff_num_verb': [rel_difference, 'num_verb'],
-    # 'rel_diff_num_adverb': [rel_difference, 'num_adverb'],
-    # 'rel_diff_num_adjective': [rel_difference, 'num_adjective'],
-    # 'rel_diff_num_wh': [rel_difference, 'num_wh'],
-    # 'rel_diff_num_pronoun': [rel_difference, 'num_pronoun'],
 
     'norm_diff_num_words': [norm_difference, 'num_words'],
     'norm_diff_num_punctuation': [norm_difference, 'num_punctuation']
-    # 'norm_diff_num_noun': [norm_difference, 'num_noun'],
-    # 'norm_diff_num_verb': [norm_difference, 'num_verb'],
-    # 'norm_diff_num_adverb': [norm_difference, 'num_adverb'],
-    # 'norm_diff_num_adjective': [norm_difference, 'num_adjective'],
-    # 'norm_diff_num_wh': [norm_difference, 'num_wh'],
-    # 'norm_diff_num_pronoun': [norm_difference, 'num_pronoun']
 }
 
-if __name__ == '__main__':
-    """
-    Test section
-    """
-    b = count_tokens('deshalb möchte ich sie nochmals ersuchen , dafür sorge zu tragen'.split(), punctuation=False)
-    print(b)

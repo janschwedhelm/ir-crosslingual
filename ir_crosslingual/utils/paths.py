@@ -53,7 +53,8 @@ extracted_data = {
     'en-fr': '{}extracted_data/global/en-fr/'.format(data_path),
     'fr-en': '{}extracted_data/global/fr-en/'.format(data_path),
     'en-fi': '{}extracted_data/global/en-fi/'.format(data_path),
-    'fi-en': '{}extracted_data/global/fi-en/'.format(data_path)
+    'fi-en': '{}extracted_data/global/fi-en/'.format(data_path),
+    'docs': '{}extracted_data/global/documents/'.format(data_path)
 }
 
 languages = {
