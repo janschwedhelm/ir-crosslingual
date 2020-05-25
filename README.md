@@ -11,6 +11,8 @@ Unzip it to the very same directiory you find this Readme, resulting in the foll
 * ir-crosslingual
   * data
   * ir_crosslingual
+  
+After, please install the package using "pip install ." when located in the top directory of the archive.
 
 You can find and reproduce the results we obtained in our report by using the Jupyter notebooks we provide under "ir_crosslingual/notebooks". They are briefly described in the following:
 * **create_documents_collection.ipynb**: creates train data and test collection using German-English WikiCLIR data (please download respective files from https://www.cl.uni-heidelberg.de/statnlpgroup/wikiclir/ and put them under "data/wikiclir_v1" in order to reproduce the results)
