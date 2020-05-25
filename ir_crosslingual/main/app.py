@@ -13,6 +13,7 @@ from ir_crosslingual.unsupervised_classification.unsup_model import UnsupModel
 
 from ir_crosslingual.main import app
 
+# pre-define full list of model features
 MODEL_FEATURES = ['src_sentence', 'trg_sentence', 'translation',
                   'norm_diff_translated_words', 'abs_diff_num_words', 'abs_diff_num_punctuation',
                   'abs_diff_occ_question_mark', 'abs_diff_occ_exclamation_mark',
@@ -48,7 +49,6 @@ lr_model, lr_prepared_features, lr_features_dict = sup_model.SupModel.load_model
 
 
 def init_word_embeddings():
-    # TODO: Retrieve languages from sup_binary.html and initialize all languages from this list
     german = embeddings.WordEmbeddings('de')
     german.load_embeddings()
 

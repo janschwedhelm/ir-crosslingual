@@ -60,8 +60,6 @@ class Sentences:
 
         self.dim_emb = 300
 
-        # Sentences.all_language_pairs['{}-{}'.format(self.src_lang, self.trg_lang)] = self
-
     @classmethod
     def load_from_file(cls, train_data: str, test_collection: str, file_format: str = 'pkl',
                        src_language: str = 'en', trg_language: str = 'de'):

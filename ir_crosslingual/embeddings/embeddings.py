@@ -23,7 +23,7 @@ class WordEmbeddings:
     N_MAX = 50000 # Having n_max as a class attribute means that for each language
     # we always load the same number of most frequent words.
     # Alternatively, this could also be passed to load_embeddings as a parameter
-    LEARNING_METHODS = ['procrustes']  # todo: implement further methods
+    LEARNING_METHODS = ['procrustes']
     SIMILARITY_MEASURES = ['cosine']
 
     def __init__(self, language, evaluation: bool = False):
@@ -136,7 +136,6 @@ class WordEmbeddings:
         :param trg_lang: Target language of the seed dictionary (short form, e.g. 'de')
         :param evaluation: If True, use test expert dictionary for evaluation of word embeddings
         """
-        # TODO: Check that languages are in list
 
         source = cls.get_test_embeddings(src_lang) if evaluation else cls.get_embeddings(src_lang)
         target = cls.get_test_embeddings(trg_lang) if evaluation else cls.get_embeddings(trg_lang)
@@ -220,7 +219,6 @@ class WordEmbeddings:
         :return: Return projection matrices in both directions
         """
         for s_lang, t_lang in zip([src_lang, trg_lang], [trg_lang, src_lang]):
-            # TODO: Always check that languages are in list
             print('---- INFO: Learn projection matrix for {}-{}'.format(s_lang, t_lang))
             source = cls.get_embeddings(s_lang)
             target = cls.get_embeddings(t_lang)

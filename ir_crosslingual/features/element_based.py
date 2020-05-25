@@ -3,7 +3,15 @@ import numpy as np
 from ir_crosslingual.sentences.sentences import Sentences
 
 
-def vec2features(sens: Sentences, pca, mean_scaler, train=True):
+def vec2features(sens: Sentences, pca: dict, mean_scaler: dict, train=True):
+    """
+    Applies PCA for reducing dimensionality of embeddings to 10 and extracts the vector elements as features.
+    :param sens: Sentences object
+    :param pca: dictionary that contains fitted PCA object for both source and target embeddings
+    :param mean_scaler: dictionary that contains fitted mean scaler object for both source and target embeddings
+    :param train: if True, function is also applied to training data, else it is only applied on test collection
+    :return: Sentences object with updated test collection (and training data)
+    """
     unique_queries = sens.test_collection.drop_duplicates('src_sentence', ignore_index=True)
     print('---- INFO: Unique queries extracted')
     unique_documents = sens.test_collection.drop_duplicates('trg_sentence', ignore_index=True)
